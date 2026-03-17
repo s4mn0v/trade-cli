@@ -8,10 +8,6 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func SetTerminalSize(rows, cols int) {
-	fmt.Printf("\033[8;%d;%dt", rows, cols)
-}
-
 type Manager struct {
 	mu        sync.RWMutex
 	OrderMode bool
@@ -19,9 +15,7 @@ type Manager struct {
 }
 
 func NewManager() *Manager {
-	return &Manager{
-		History: NewHistoryTable(),
-	}
+	return &Manager{History: NewHistoryTable()}
 }
 
 func (m *Manager) Layout(g *gocui.Gui) error {
@@ -35,10 +29,7 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		}
 		v.Title = " Place order "
 		fmt.Fprint(v, "\n  (Ctrl + O, s) = Short | (Ctrl + O, l) = Long")
-		// Force focus to order panel on start
-		if _, err := g.SetCurrentView("order_panel"); err != nil {
-			return err
-		}
+		g.SetCurrentView("order_panel")
 	}
 
 	// 2. History Panel
@@ -47,19 +38,39 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Title = " History "
+		v.Autoscroll = false // Must be false
 	} else {
 		m.History.Render(v, maxX)
 	}
 
-	// Dynamic Frame Styling
+	// --- FOCUS HIGHLIGHTING ---
+	curr := ""
+	if v := g.CurrentView(); v != nil {
+		curr = v.Name()
+	}
+
 	if v, err := g.View("order_panel"); err == nil {
 		if m.OrderMode {
-			v.FrameColor = gocui.ColorYellow
-			v.Title = " Place order [ORDER MODE ACTIVE] "
+			v.FrameColor, v.Title = gocui.ColorYellow, " Place order [ORDER MODE ACTIVE] "
+		} else if curr == "order_panel" {
+			v.FrameColor = gocui.ColorCyan
 		} else {
 			v.FrameColor = gocui.ColorDefault
 			v.Title = " Place order "
 		}
 	}
+
+	if v, err := g.View("history"); err == nil {
+		if curr == "history" {
+			v.FrameColor = gocui.ColorCyan
+		} else {
+			v.FrameColor = gocui.ColorDefault
+		}
+	}
+
 	return nil
+}
+
+func SetTerminalSize(rows, cols int) {
+	fmt.Printf("\033[8;%d;%dt", rows, cols)
 }
