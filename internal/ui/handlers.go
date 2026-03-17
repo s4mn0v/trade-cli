@@ -26,30 +26,24 @@ func (m *Manager) EnterOrderMode(g *gocui.Gui, v *gocui.View) error {
 
 func (m *Manager) HandleShort(g *gocui.Gui, v *gocui.View) error {
 	if m.OrderMode {
-		m.addHistoryEntry("SHORT", "65100.20")
-		m.OrderMode = false
+		m.History.Add(HistoryEntry{
+			Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
+			Direction: "SHORT", Price: "65100", Total: "0.01", Status: "FILLED",
+		})
+		m.OrderMode = false // Reset mode after order
 	}
 	return nil
 }
 
 func (m *Manager) HandleLong(g *gocui.Gui, v *gocui.View) error {
 	if m.OrderMode {
-		m.addHistoryEntry("LONG ", "65250.40")
-		m.OrderMode = false
+		m.History.Add(HistoryEntry{
+			Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
+			Direction: "LONG", Price: "65200", Total: "0.01", Status: "FILLED",
+		})
+		m.OrderMode = false // Reset mode after order
 	}
 	return nil
-}
-
-// Internal helper to update the table data
-func (m *Manager) addHistoryEntry(side, price string) {
-	newEntry := HistoryEntry{
-		Time:   time.Now().Format("15:04"),
-		Side:   side,
-		Price:  price,
-		Status: "FILLED",
-	}
-	// Prepend to show newest at the top
-	m.History = append([]HistoryEntry{newEntry}, m.History...)
 }
 
 func (m *Manager) ScrollUp(g *gocui.Gui, v *gocui.View) error {

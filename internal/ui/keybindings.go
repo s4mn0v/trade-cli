@@ -2,36 +2,23 @@ package ui
 
 import "github.com/awesome-gocui/gocui"
 
-// InitKeybindings centralizes all input mapping
 func (m *Manager) InitKeybindings(g *gocui.Gui) error {
-	// --- GLOBAL KEYS ---
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, m.Quit); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, m.ToggleFocus); err != nil {
-		return err
-	}
+	// Global Quit
+	g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, m.Quit)
 
-	// --- ORDER PANEL KEYS ---
-	// Mode Entry
-	if err := g.SetKeybinding("order_panel", gocui.KeyCtrlO, gocui.ModNone, m.EnterOrderMode); err != nil {
-		return err
-	}
-	// Action Keys (S and L)
-	if err := g.SetKeybinding("order_panel", 's', gocui.ModNone, m.HandleShort); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("order_panel", 'l', gocui.ModNone, m.HandleLong); err != nil {
-		return err
-	}
+	// Tab to switch focus
+	g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, m.ToggleFocus)
 
-	// --- HISTORY PANEL KEYS ---
-	if err := g.SetKeybinding("history", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("history", gocui.KeyArrowDown, gocui.ModNone, m.ScrollDown); err != nil {
-		return err
-	}
+	// Order Mode Initiation (Must be in order_panel or global)
+	g.SetKeybinding("", gocui.KeyCtrlO, gocui.ModNone, m.EnterOrderMode)
+
+	// Action Keys (Global so they work as soon as OrderMode is true)
+	g.SetKeybinding("", 's', gocui.ModNone, m.HandleShort)
+	g.SetKeybinding("", 'l', gocui.ModNone, m.HandleLong)
+
+	// Scrolling (Only when history is focused)
+	g.SetKeybinding("history", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp)
+	g.SetKeybinding("history", gocui.KeyArrowDown, gocui.ModNone, m.ScrollDown)
 
 	return nil
 }
