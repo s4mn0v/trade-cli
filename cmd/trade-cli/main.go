@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	ui.SetTerminalSize(20, 62)
+	ui.SetTerminalSize(20, 90)
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
