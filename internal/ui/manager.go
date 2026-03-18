@@ -43,11 +43,12 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) Layout(g *gocui.Gui) error {
-	m.mu.RLock() // Lock for reading balances safely
+	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	maxX, maxY := g.Size()
-	orderH, logW := 5, 30
+	orderH := 5
+	logW := 45 // Increased from 30 to 45
 	histW := maxX - logW - 1
 
 	// 1. Order Panel
@@ -57,17 +58,13 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		}
 		g.SetCurrentView("order_panel")
 	} else {
-		// UPDATED DYNAMIC TITLE LOGIC:
 		var title string
 		if m.Mode == ModeSpot {
-			// Title for Spot: [SPOT] [Avbl: 0.00 USDT]
 			title = fmt.Sprintf(" Place order [%s] [Avbl: %.2f USDT] ", m.Mode, m.SpotBalance)
 		} else {
-			// Title for Futures: [FUTURES] [10x] [Avbl: 0.00 USDT]
 			title = fmt.Sprintf(" Place order [%s] [%dx] [Avbl: %.2f USDT] ", m.Mode, m.FuturesLeverage, m.FuturesBalance)
 		}
 		v.Title = title
-
 		v.Clear()
 		if m.Mode == ModeSpot {
 			fmt.Fprint(v, "\n  (Ctrl+O, b) = Buy | (Ctrl+O, s) = Sell | (Ctrl+S) Spot | (Ctrl+F) Futures")
@@ -81,12 +78,14 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		m.History.Render(v, histW, m.Mode)
 	}
 
-	// 3. Logs
+	// 3. Logs Panel
 	if v, err := g.SetView("logs", histW+1, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
+		v.Title = " Logs "
+		v.Autoscroll = true
+		v.Wrap = true
 		m.Logger.Render(v)
 	}
 
-	// --- POPUP LAYER ---
 	if m.ShowLeverage {
 		m.LeveragePopup.Render(g, maxX, maxY)
 	} else {
