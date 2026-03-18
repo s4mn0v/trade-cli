@@ -84,6 +84,7 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		v.Autoscroll = true
 		v.Wrap = true
 		m.Logger.Render(v)
+		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
 	}
 
 	if m.ShowLeverage {

@@ -30,6 +30,7 @@ func (l *LeveragePopup) Render(g *gocui.Gui, maxX, maxY int) error {
 		v.Title = " Leverage Setting "
 		v.FrameColor = gocui.ColorYellow
 		v.Overlaps = 0
+		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
 		g.SetCurrentView("leverage_pop")
 	}
 
