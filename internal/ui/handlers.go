@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/awesome-gocui/gocui"
@@ -146,8 +147,68 @@ func (m *Manager) ScrollDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+// OpenLeverage checks if mode is Futures then opens popup
+func (m *Manager) ConfirmLeverage(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.FuturesLeverage = m.LeveragePopup.CurrentVal
+	m.ShowLeverage = false
+	m.mu.Unlock()
+
+	m.Logger.Info(fmt.Sprintf("F/Leverage: %d", m.FuturesLeverage))
+	g.SetCurrentView("order_panel")
+	return nil
+}
+
+func (m *Manager) ToggleLeverage(g *gocui.Gui, v *gocui.View) error {
+	if m.Mode != ModeFutures {
+		m.Logger.Error("Leverage only available in FUTURES mode")
+		return nil
+	}
+
+	m.mu.Lock()
+	m.ShowLeverage = !m.ShowLeverage
+	if m.ShowLeverage {
+		// Sync with the global state
+		m.LeveragePopup.CurrentVal = m.FuturesLeverage // Updated name
+	}
+	m.mu.Unlock()
+
+	if !m.ShowLeverage {
+		g.SetCurrentView("order_panel")
+	}
+	return nil
+}
+
+func (m *Manager) LeverageUp(g *gocui.Gui, v *gocui.View) error {
+	if m.LeveragePopup.CurrentVal < 125 {
+		m.LeveragePopup.CurrentVal++
+	}
+	return nil
+}
+
+func (m *Manager) LeverageDown(g *gocui.Gui, v *gocui.View) error {
+	if m.LeveragePopup.CurrentVal > 1 {
+		m.LeveragePopup.CurrentVal--
+	}
+	return nil
+}
+
+func (m *Manager) CloseLeverage(g *gocui.Gui, v *gocui.View) error {
+	m.ShowLeverage = false
+	g.SetCurrentView("order_panel")
+	return nil
+}
+
 // ClearLogs resets the log panel
 func (m *Manager) ClearLogs(g *gocui.Gui, v *gocui.View) error {
 	m.Logger.Clear()
 	return nil
+}
+
+// SetBalances is a thread-safe way to update the account available balance
+func (m *Manager) SetBalances(spot, futures float64) {
+	m.mu.Lock()
+	m.SpotBalance = spot
+	m.FuturesBalance = futures
+	m.mu.Unlock()
 }

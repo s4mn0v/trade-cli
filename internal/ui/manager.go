@@ -14,22 +14,38 @@ const (
 )
 
 type Manager struct {
-	mu        sync.RWMutex
-	OrderMode bool
-	Mode      string // Tracks "SPOT" or "FUTURES"
-	History   *HistoryTable
-	Logger    *UILogger
+	mu              sync.RWMutex
+	OrderMode       bool
+	Mode            string
+	ShowLeverage    bool
+	FuturesLeverage int
+
+	// API-Ready Balance Fields
+	SpotBalance    float64
+	FuturesBalance float64
+
+	History       *HistoryTable
+	Logger        *UILogger
+	LeveragePopup *LeveragePopup
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		History: NewHistoryTable(),
-		Logger:  NewUILogger(),
-		Mode:    ModeSpot, // Default to Spot
+		History:         NewHistoryTable(),
+		Logger:          NewUILogger(),
+		Mode:            ModeSpot,
+		LeveragePopup:   NewLeveragePopup(),
+		ShowLeverage:    false,
+		FuturesLeverage: 5,
+		SpotBalance:     1250.50,
+		FuturesBalance:  500.00,
 	}
 }
 
 func (m *Manager) Layout(g *gocui.Gui) error {
+	m.mu.RLock() // Lock for reading balances safely
+	defer m.mu.RUnlock()
+
 	maxX, maxY := g.Size()
 	orderH, logW := 5, 30
 	histW := maxX - logW - 1
@@ -41,33 +57,40 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		}
 		g.SetCurrentView("order_panel")
 	} else {
-		v.Title = fmt.Sprintf(" Place order [%s] ", m.Mode)
+		// UPDATED DYNAMIC TITLE LOGIC:
+		var title string
+		if m.Mode == ModeSpot {
+			// Title for Spot: [SPOT] [Avbl: 0.00 USDT]
+			title = fmt.Sprintf(" Place order [%s] [Avbl: %.2f USDT] ", m.Mode, m.SpotBalance)
+		} else {
+			// Title for Futures: [FUTURES] [10x] [Avbl: 0.00 USDT]
+			title = fmt.Sprintf(" Place order [%s] [%dx] [Avbl: %.2f USDT] ", m.Mode, m.FuturesLeverage, m.FuturesBalance)
+		}
+		v.Title = title
+
 		v.Clear()
 		if m.Mode == ModeSpot {
 			fmt.Fprint(v, "\n  (Ctrl+O, b) = Buy | (Ctrl+O, s) = Sell | (Ctrl+S) Spot | (Ctrl+F) Futures")
 		} else {
-			fmt.Fprint(v, "\n  (Ctrl+O, l) = Long | (Ctrl+O, s) = Short | (Ctrl+S) Spot | (Ctrl+F) Futures")
+			fmt.Fprint(v, "\n  (Ctrl+O, l) = Long | (Ctrl+O, s) = Short | (L) Leverage | (Ctrl+S) Spot | (Ctrl+F) Futures")
 		}
 	}
 
 	// 2. History Panel
-	if v, err := g.SetView("history", 0, orderH+1, histW, maxY-1, 0); err != nil {
-		if !errors.Is(err, gocui.ErrUnknownView) {
-			return err
-		}
-		v.Title = " History "
-	} else {
-		m.History.Render(v, histW, m.Mode) // Pass mode to History
+	if v, err := g.SetView("history", 0, orderH+1, histW, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
+		m.History.Render(v, histW, m.Mode)
 	}
 
 	// 3. Logs
-	if v, err := g.SetView("logs", histW+1, orderH+1, maxX-1, maxY-1, 0); err != nil {
-		if !errors.Is(err, gocui.ErrUnknownView) {
-			return err
-		}
-		v.Title = " Logs "
-	} else {
+	if v, err := g.SetView("logs", histW+1, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
 		m.Logger.Render(v)
+	}
+
+	// --- POPUP LAYER ---
+	if m.ShowLeverage {
+		m.LeveragePopup.Render(g, maxX, maxY)
+	} else {
+		g.DeleteView("leverage_pop")
 	}
 
 	m.applyDynamicStyles(g)

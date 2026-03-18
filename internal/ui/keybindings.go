@@ -24,6 +24,15 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	g.SetKeybinding("history", gocui.KeyArrowUp, gocui.ModNone, m.HistoryUp)
 	g.SetKeybinding("history", gocui.KeyArrowDown, gocui.ModNone, m.HistoryDown)
 
+	// Open Leverage (Shift + L)
+	g.SetKeybinding("", 'L', gocui.ModNone, m.ToggleLeverage)
+
+	// Keys inside the Popup
+	g.SetKeybinding("leverage_pop", gocui.KeyArrowRight, gocui.ModNone, m.LeverageUp)
+	g.SetKeybinding("leverage_pop", gocui.KeyArrowLeft, gocui.ModNone, m.LeverageDown)
+	g.SetKeybinding("leverage_pop", gocui.KeyEsc, gocui.ModNone, m.CloseLeverage)
+	g.SetKeybinding("leverage_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmLeverage)
+
 	// Logs Panel Navigation (Scrolling)
 	g.SetKeybinding("logs", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp)
 	g.SetKeybinding("logs", gocui.KeyArrowDown, gocui.ModNone, m.ScrollDown)
