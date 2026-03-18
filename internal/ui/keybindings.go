@@ -8,10 +8,17 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, m.ToggleFocus)
 	g.SetKeybinding("", gocui.KeyCtrlL, gocui.ModNone, m.ClearLogs)
 
-	// Order Actions
+	// --- Mode Switching ---
+	g.SetKeybinding("", gocui.KeyCtrlS, gocui.ModNone, m.SetModeSpot)
+	g.SetKeybinding("", gocui.KeyCtrlF, gocui.ModNone, m.SetModeFutures)
+
+	// Order Mode
 	g.SetKeybinding("", gocui.KeyCtrlO, gocui.ModNone, m.EnterOrderMode)
-	g.SetKeybinding("", 's', gocui.ModNone, m.HandleShort)
-	g.SetKeybinding("", 'l', gocui.ModNone, m.HandleLong)
+
+	// Actions: B/L for Positive direction, S for Negative direction
+	g.SetKeybinding("", 'b', gocui.ModNone, m.HandleAction1) // Buy
+	g.SetKeybinding("", 'l', gocui.ModNone, m.HandleAction1) // Long
+	g.SetKeybinding("", 's', gocui.ModNone, m.HandleAction2) // Sell or Short
 
 	// History Panel Navigation (Selection)
 	g.SetKeybinding("history", gocui.KeyArrowUp, gocui.ModNone, m.HistoryUp)

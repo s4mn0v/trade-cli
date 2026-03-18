@@ -74,6 +74,64 @@ func (m *Manager) HistoryDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (m *Manager) SetModeSpot(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.Mode = ModeSpot
+	m.mu.Unlock()
+
+	m.History.Reset() // Wipes the table data
+	m.Logger.Info("Switched to SPOT. Table cleared (Fetching Spot API...)")
+	return nil
+}
+
+func (m *Manager) SetModeFutures(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.Mode = ModeFutures
+	m.mu.Unlock()
+
+	m.History.Reset() // Wipes the table data
+	m.Logger.Info("Switched to FUTURES. Table cleared (Fetching Futures API...)")
+	return nil
+}
+
+func (m *Manager) HandleAction1(g *gocui.Gui, v *gocui.View) error { // BUY or LONG
+	if !m.OrderMode {
+		return nil
+	}
+
+	direction := "LONG"
+	if m.Mode == ModeSpot {
+		direction = "BUY"
+	}
+
+	m.History.Add(HistoryEntry{
+		Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
+		Direction: direction, Price: "65000.00", Total: "0.01", Status: "FILLED",
+	})
+	m.Logger.Info(direction + " order executed")
+	m.OrderMode = false
+	return nil
+}
+
+func (m *Manager) HandleAction2(g *gocui.Gui, v *gocui.View) error { // SELL or SHORT
+	if !m.OrderMode {
+		return nil
+	}
+
+	direction := "SHORT"
+	if m.Mode == ModeSpot {
+		direction = "SELL"
+	}
+
+	m.History.Add(HistoryEntry{
+		Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
+		Direction: direction, Price: "65000.00", Total: "0.01", Status: "FILLED",
+	})
+	m.Logger.Info(direction + " order executed")
+	m.OrderMode = false
+	return nil
+}
+
 // Scroll methods for the Logs panel
 func (m *Manager) ScrollUp(g *gocui.Gui, v *gocui.View) error {
 	if v != nil {
