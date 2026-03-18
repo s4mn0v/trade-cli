@@ -47,7 +47,7 @@ func (l *LeveragePopup) Render(g *gocui.Gui, maxX, maxY int) error {
 	// Progress bar using Invert for high visibility
 	bar := "\033[7m" + strings.Repeat(" ", filled) + "\033[0m" + strings.Repeat("░", barWidth-filled)
 	fmt.Fprintf(v, "    %s\n\n", bar)
-	fmt.Fprintf(v, "    \033[33m[←/→]\033[0m Adjust | \033[33m[Enter]\033[0m Set | \033[33m[Esc]\033[0m")
+	fmt.Fprintf(v, "    \033[33m[←/→]\033[0m Adjust | \033[33m[R]\033[0m Reset | \033[33m[Enter]\033[0m Set")
 
 	return nil
 }

@@ -193,6 +193,14 @@ func (m *Manager) LeverageDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (m *Manager) ResetLeverage(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.LeveragePopup.CurrentVal = 5
+	return nil
+}
+
 func (m *Manager) CloseLeverage(g *gocui.Gui, v *gocui.View) error {
 	m.ShowLeverage = false
 	g.SetCurrentView("order_panel")

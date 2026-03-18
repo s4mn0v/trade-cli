@@ -32,6 +32,7 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	g.SetKeybinding("leverage_pop", gocui.KeyArrowLeft, gocui.ModNone, m.LeverageDown)
 	g.SetKeybinding("leverage_pop", gocui.KeyEsc, gocui.ModNone, m.CloseLeverage)
 	g.SetKeybinding("leverage_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmLeverage)
+	g.SetKeybinding("leverage_pop", 'r', gocui.ModNone, m.ResetLeverage)
 
 	// Logs Panel Navigation (Scrolling)
 	g.SetKeybinding("logs", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp)
