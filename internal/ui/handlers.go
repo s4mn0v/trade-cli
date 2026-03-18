@@ -25,13 +25,6 @@ func (m *Manager) ToggleFocus(g *gocui.Gui, v *gocui.View) error {
 	return err
 }
 
-func (m *Manager) EnterOrderMode(g *gocui.Gui, v *gocui.View) error {
-	m.mu.Lock()
-	m.OrderMode = true
-	m.mu.Unlock()
-	return nil
-}
-
 func (m *Manager) HandleShort(g *gocui.Gui, v *gocui.View) error {
 	if m.OrderMode {
 		m.History.Add(HistoryEntry{
@@ -78,9 +71,8 @@ func (m *Manager) SetModeSpot(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Lock()
 	m.Mode = ModeSpot
 	m.mu.Unlock()
-
-	m.History.Reset() // Wipes the table data
-	m.Logger.Info("Switched to SPOT. Table cleared (Fetching Spot API...)")
+	m.History.Reset()
+	m.Logger.Info("Mode set to SPOT (Success)")
 	return nil
 }
 
@@ -88,47 +80,50 @@ func (m *Manager) SetModeFutures(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Lock()
 	m.Mode = ModeFutures
 	m.mu.Unlock()
-
-	m.History.Reset() // Wipes the table data
-	m.Logger.Info("Switched to FUTURES. Table cleared (Fetching Futures API...)")
+	m.History.Reset()
+	m.Logger.Warning("Mode set to FUTURES (Warning: High Risk)")
 	return nil
 }
 
-func (m *Manager) HandleAction1(g *gocui.Gui, v *gocui.View) error { // BUY or LONG
-	if !m.OrderMode {
-		return nil
-	}
-
+func (m *Manager) HandleAction1(g *gocui.Gui, v *gocui.View) error {
 	direction := "LONG"
 	if m.Mode == ModeSpot {
-		direction = "BUY"
+		direction = "BUT"
 	}
 
-	m.History.Add(HistoryEntry{
-		Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
-		Direction: direction, Price: "65000.00", Total: "0.01", Status: "FILLED",
-	})
-	m.Logger.Info(direction + " order executed")
-	m.OrderMode = false
+	if m.OrderMode {
+		m.History.Add(HistoryEntry{
+			Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
+			Direction: direction, Price: "65000", Total: "0.01", Status: "FILLED",
+		})
+		m.Logger.Info("Order Filled (Success)") // Green Log
+		m.OrderMode = false
+	}
 	return nil
 }
 
-func (m *Manager) HandleAction2(g *gocui.Gui, v *gocui.View) error { // SELL or SHORT
-	if !m.OrderMode {
-		return nil
-	}
-
+func (m *Manager) HandleAction2(g *gocui.Gui, v *gocui.View) error {
 	direction := "SHORT"
 	if m.Mode == ModeSpot {
 		direction = "SELL"
 	}
 
-	m.History.Add(HistoryEntry{
-		Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
-		Direction: direction, Price: "65000.00", Total: "0.01", Status: "FILLED",
-	})
-	m.Logger.Info(direction + " order executed")
-	m.OrderMode = false
+	if m.OrderMode {
+		m.History.Add(HistoryEntry{
+			Pair: "BTCUSDT", Date: time.Now().Format("01-02 15:04"),
+			Direction: direction, Price: "65000.00", Total: "0.01", Status: "FILLED",
+		})
+		m.Logger.Error("Short/Sell Executed") // Red Log
+		m.OrderMode = false
+	}
+	return nil
+}
+
+func (m *Manager) EnterOrderMode(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.OrderMode = true
+	m.mu.Unlock()
+	m.Logger.Warning("Entering Order Mode... (Awaiting Action)") // Yellow Log
 	return nil
 }
 
