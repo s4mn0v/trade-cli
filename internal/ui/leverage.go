@@ -17,7 +17,7 @@ func NewLeveragePopup() *LeveragePopup {
 }
 
 func (l *LeveragePopup) Render(g *gocui.Gui, maxX, maxY int) error {
-	w, h := 45, 8
+	w, h := 45, 9
 	x0, y0 := maxX/2-w/2, maxY/2-h/2
 	x1, y1 := maxX/2+w/2, maxY/2+h/2
 
@@ -29,7 +29,7 @@ func (l *LeveragePopup) Render(g *gocui.Gui, maxX, maxY int) error {
 		// Initialization settings
 		v.Title = " Leverage Setting "
 		v.FrameColor = gocui.ColorYellow
-		v.Overlaps = 1
+		v.Overlaps = 0
 		g.SetCurrentView("leverage_pop")
 	}
 
