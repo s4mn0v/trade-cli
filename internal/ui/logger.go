@@ -49,6 +49,6 @@ func (l *UILogger) Render(v *gocui.View) {
 			color = "\033[33m"
 		} // Yellow (Warning)
 
-		fmt.Fprintf(v, "[%s] %s%s\033[0m\n", m.Timestamp, color, m.Text)
+		_, _ = fmt.Fprintf(v, "[%s] %s%s\033[0m\n", m.Timestamp, color, m.Text)
 	}
 }
