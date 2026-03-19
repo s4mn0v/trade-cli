@@ -95,24 +95,37 @@ func (m *Manager) HandleAction1(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Lock()
 	currentCoin := m.CurrentCoin
 	percent := m.PositionPercent
+	baseAsset := strings.TrimSuffix(currentCoin, "USDT")
+	price := 65000.0
 	mode := m.Mode
-	m.OrderMode = false // Exit order mode
 	m.mu.Unlock()
 
 	if mode == ModeSpot {
-		// --- SPOT LOGIC ---
+		// Calculate how much USDT spending
+		costUSDT := m.SpotBalance * (float64(percent) / 100.0)
+
+		if costUSDT <= 0 {
+			m.Logger.Error("Insufficient USDT Balance")
+			m.mu.Lock()
+			m.OrderMode = false
+			m.mu.Unlock()
+			return nil
+		}
+
+		m.mu.Lock()
+		m.SpotBalance -= costUSDT
+		boughtAmount := costUSDT / price
+		m.SpotAssets[baseAsset] += boughtAmount
+		m.mu.Unlock()
+
 		m.History.Add(HistoryEntry{
-			Pair:      currentCoin,
-			Date:      time.Now().Format("01-02 15:04"),
-			Direction: "BUY",
-			Price:     "65000.00",
-			Total:     fmt.Sprintf("%.2f", m.SpotBalance*(float64(percent)/100.0)),
-			Status:    "FILLED",
+			Pair: currentCoin, Date: time.Now().Format("01-02 15:04"),
+			Direction: "BUY", Price: fmt.Sprintf("%.2f", price),
+			Total: fmt.Sprintf("%.2f", costUSDT), Status: "FILLED",
 		})
-		m.Logger.Info(fmt.Sprintf("Spot BUY %s Filled", currentCoin))
+		m.Logger.Info(fmt.Sprintf("Bought %.4f %s", boughtAmount, baseAsset))
 
 	} else {
-		// --- FUTURES LOGIC ---
 		posID := int(time.Now().UnixNano())
 		newPos := &Position{
 			ID:    posID,
@@ -133,6 +146,10 @@ func (m *Manager) HandleAction1(g *gocui.Gui, v *gocui.View) error {
 			m.removePositionByID(posID, "Auto-Closed (Expired)")
 		})
 	}
+
+	m.mu.Lock()
+	m.OrderMode = false
+	m.mu.Unlock()
 	return nil
 }
 
@@ -144,24 +161,37 @@ func (m *Manager) HandleAction2(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Lock()
 	currentCoin := m.CurrentCoin
 	percent := m.PositionPercent
+	baseAsset := strings.TrimSuffix(currentCoin, "USDT")
+	price := 65000.0
 	mode := m.Mode
-	m.OrderMode = false
 	m.mu.Unlock()
 
 	if mode == ModeSpot {
-		// --- SPOT LOGIC ---
+		// Calculate how much of the Asset are selling
+		amountToSell := m.SpotAssets[baseAsset] * (float64(percent) / 100.0)
+
+		if amountToSell <= 0 {
+			m.Logger.Error(fmt.Sprintf("No %s to sell", baseAsset))
+			m.mu.Lock()
+			m.OrderMode = false
+			m.mu.Unlock()
+			return nil
+		}
+
+		m.mu.Lock()
+		m.SpotAssets[baseAsset] -= amountToSell
+		receivedUSDT := amountToSell * price
+		m.SpotBalance += receivedUSDT
+		m.mu.Unlock()
+
 		m.History.Add(HistoryEntry{
-			Pair:      currentCoin,
-			Date:      time.Now().Format("01-02 15:04"),
-			Direction: "SELL",
-			Price:     "65000.00",
-			Total:     fmt.Sprintf("%.2f", m.SpotBalance*(float64(percent)/100.0)),
-			Status:    "FILLED",
+			Pair: currentCoin, Date: time.Now().Format("01-02 15:04"),
+			Direction: "SELL", Price: fmt.Sprintf("%.2f", price),
+			Total: fmt.Sprintf("%.2f", receivedUSDT), Status: "FILLED",
 		})
-		m.Logger.Error(fmt.Sprintf("Spot SELL %s Filled", currentCoin))
+		m.Logger.Error(fmt.Sprintf("Sold %.4f %s", amountToSell, baseAsset))
 
 	} else {
-		// --- FUTURES LOGIC ---
 		posID := int(time.Now().UnixNano())
 		newPos := &Position{
 			ID:    posID,
@@ -182,6 +212,10 @@ func (m *Manager) HandleAction2(g *gocui.Gui, v *gocui.View) error {
 			m.removePositionByID(posID, "Auto-Closed (Expired)")
 		})
 	}
+
+	m.mu.Lock()
+	m.OrderMode = false
+	m.mu.Unlock()
 	return nil
 }
 
@@ -192,21 +226,33 @@ func (m *Manager) removePositionByID(id int, reason string) {
 
 	for i, p := range m.Positions.Active {
 		if p.ID == id {
-			// Remove from slice
+			// 1. Create a History Entry before deleting
+			m.History.Add(HistoryEntry{
+				Pair:      p.Pair,
+				Date:      time.Now().Format("01-02 15:04"),
+				Direction: p.Side,
+				Price:     p.Entry,
+				Total:     fmt.Sprintf("%+.2f%%", p.PnL),
+				Status:    "CLOSED",
+			})
+
+			// 2. Remove from active positions slice
 			m.Positions.Active = append(m.Positions.Active[:i], m.Positions.Active[i+1:]...)
 
-			// Reset selection index if it's now out of bounds
+			// 3. Reset selection index if out of bounds
 			if m.Positions.SelectedIdx >= len(m.Positions.Active) && len(m.Positions.Active) > 0 {
 				m.Positions.SelectedIdx = len(m.Positions.Active) - 1
 			}
 
-			m.Logger.Warning(fmt.Sprintf("%s: %s", reason, p.Pair))
+			// 4. Log the event
+			m.Logger.Warning(fmt.Sprintf("%s: %s (PnL: %.2f%%)", reason, p.Pair, p.PnL))
 			return
 		}
 	}
 }
 
-// Update the manual close handler to use the helper
+// CloseActivePosition
+
 func (m *Manager) CloseActivePosition(g *gocui.Gui, v *gocui.View) error {
 	if m.Mode != ModeFutures {
 		return nil
@@ -225,6 +271,7 @@ func (m *Manager) CloseActivePosition(g *gocui.Gui, v *gocui.View) error {
 }
 
 // Navigation for positions
+
 func (m *Manager) PositionUp(g *gocui.Gui, v *gocui.View) error {
 	m.Positions.mu.Lock()
 	if m.Positions.SelectedIdx > 0 {
@@ -439,7 +486,7 @@ func (m *Manager) ClearLogs(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// SetBalances is a thread-safe way to update the account available balance
+// SetBalances thread-safe way to update the account available balance
 func (m *Manager) SetBalances(spot, futures float64) {
 	m.mu.Lock()
 	m.SpotBalance = spot

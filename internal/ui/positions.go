@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,18 +35,37 @@ func (pl *PositionList) Render(v *gocui.View, width int) {
 	defer pl.mu.RUnlock()
 
 	if len(pl.Active) == 0 {
-		_, _ = fmt.Fprintln(v, "\n  \033[90mNo active positions.\033[0m")
+		_, _ = fmt.Fprintln(v, "\n\n  \033[90mNo active positions.\033[0m")
 		return
 	}
 
-	// Header
-	_, _ = fmt.Fprintf(v, "\n  %-10s %-8s %-10s %-10s %-10s\n", "PAIR", "SIDE", "ENTRY", "SIZE", "PNL")
+	// 1. Header Rendering
+	_, _ = fmt.Fprintf(v, "\n\n  %-10s %-8s %-10s %-10s %-10s\n", "PAIR", "SIDE", "ENTRY", "SIZE", "PNL")
+	_, _ = fmt.Fprintln(v, "  "+strings.Repeat("─", width-6))
 
+	// 2. SCROLLING LOGIC
+	headerRows := 6
+
+	_, viewY := v.Size()
+	visibleHeight := viewY - headerRows
+	visibleHeight = max(visibleHeight, 1)
+
+	ox, oy := v.Origin()
+
+	if pl.SelectedIdx < oy {
+		_ = v.SetOrigin(ox, pl.SelectedIdx)
+	} else if pl.SelectedIdx >= oy+visibleHeight {
+		_ = v.SetOrigin(ox, pl.SelectedIdx-visibleHeight+1)
+	}
+
+	// 3. ROW RENDERING
 	for i, p := range pl.Active {
 		prefix := "  "
 		suffix := ""
+
+		// Highlight the selected row
 		if i == pl.SelectedIdx {
-			prefix = "\033[7m >" // Invert color for selection
+			prefix = "\033[7m >" // Invert color (Selected)
 			suffix = "\033[0m"
 		}
 
@@ -59,7 +79,6 @@ func (pl *PositionList) Render(v *gocui.View, width int) {
 			pnlColor = "\033[31m"
 		}
 
-		_, _ = fmt.Fprintf(v, "%s%-10s %s%-8s\033[0m %-10s %-10s %s%+.2f%%\033[0m%s\n",
-			prefix, p.Pair, sideColor, p.Side, p.Entry, p.Size, pnlColor, p.PnL, suffix)
+		_, _ = fmt.Fprintf(v, "%s%-10s %s%-8s\033[0m %-10s %-10s %s%+.2f%%\033[0m%s\n", prefix, p.Pair, sideColor, p.Side, p.Entry, p.Size, pnlColor, p.PnL, suffix)
 	}
 }

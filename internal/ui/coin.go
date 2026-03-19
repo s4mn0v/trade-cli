@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/awesome-gocui/gocui"
@@ -59,12 +60,7 @@ func (c *CoinPopup) Render(g *gocui.Gui, maxX, maxY int, currentInput string) er
 // IsValid checks if the coin exists in our dataset
 func (c *CoinPopup) IsValid(coin string) bool {
 	coin = strings.ToUpper(strings.TrimSpace(coin))
-	for _, s := range c.Suggestions {
-		if s == coin {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Suggestions, coin)
 }
 
 // GetMatches returns a list of coins that start with or contain the input string
