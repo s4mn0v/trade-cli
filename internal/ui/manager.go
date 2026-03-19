@@ -33,6 +33,7 @@ type Manager struct {
 	LeveragePopup *LeveragePopup
 	QuantityPopup *QuantityPopup
 	CoinPopup     *CoinPopup
+	Positions     *PositionList
 }
 
 func NewManager() *Manager {
@@ -43,6 +44,7 @@ func NewManager() *Manager {
 		LeveragePopup:   NewLeveragePopup(),
 		QuantityPopup:   NewQuantityPopup(),
 		CoinPopup:       NewCoinPopup(),
+		Positions:       NewPositionList(),
 		ShowLeverage:    false,
 		ShowQuantity:    false,
 		ShowCoin:        false,
@@ -59,7 +61,7 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	defer m.mu.RUnlock()
 
 	maxX, maxY := g.Size()
-	orderH := 5
+	orderH := 10
 
 	histW := int(float64(maxX) * 0.70)
 	logX0 := histW + 1
@@ -78,6 +80,12 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 			_, _ = fmt.Fprint(v, "\n  (Ctrl+O, b) = Buy | (Ctrl+O, s) = Sell | (Ctrl+S) Spot | (Ctrl+F) Futures")
 		} else {
 			_, _ = fmt.Fprint(v, "\n  (Ctrl+O, l) = Long | (Ctrl+O, s) = Short | (L) Leverage | (Ctrl+S) Spot | (Ctrl+F) Futures")
+		}
+
+		if m.Mode == ModeFutures {
+			m.Positions.Render(v, maxX)
+		} else {
+			_, _ = fmt.Fprint(v, "\n  Spot Trading Active (No Positions Tracking)")
 		}
 	}
 

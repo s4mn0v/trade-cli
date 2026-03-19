@@ -45,6 +45,11 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	_ = g.SetKeybinding("quantity_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmQuantity)
 	_ = g.SetKeybinding("quantity_pop", 'r', gocui.ModNone, m.ResetQuantity)
 
+	// Order Panel Navigation
+	_ = g.SetKeybinding("order_panel", gocui.KeyArrowUp, gocui.ModNone, m.PositionUp)
+	_ = g.SetKeybinding("order_panel", gocui.KeyArrowDown, gocui.ModNone, m.PositionDown)
+	_ = g.SetKeybinding("order_panel", 'c', gocui.ModNone, m.CloseActivePosition)
+
 	// Logs Panel Navigation (Scrolling)
 	_ = g.SetKeybinding("logs", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp)
 	_ = g.SetKeybinding("logs", gocui.KeyArrowDown, gocui.ModNone, m.ScrollDown)
