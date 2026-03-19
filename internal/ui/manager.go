@@ -22,6 +22,7 @@ type Manager struct {
 	ShowLeverage    bool
 	ShowQuantity    bool
 	ShowCoin        bool
+	ShowSync        bool
 	CurrentCoin     string
 	FuturesLeverage int
 	PositionPercent int
@@ -35,6 +36,7 @@ type Manager struct {
 	LeveragePopup *LeveragePopup
 	QuantityPopup *QuantityPopup
 	CoinPopup     *CoinPopup
+	SyncPopup     *SyncPopup
 	Positions     *PositionList
 }
 
@@ -46,10 +48,12 @@ func NewManager() *Manager {
 		LeveragePopup:   NewLeveragePopup(),
 		QuantityPopup:   NewQuantityPopup(),
 		CoinPopup:       NewCoinPopup(),
+		SyncPopup:       NewSyncPopup(),
 		Positions:       NewPositionList(),
 		ShowLeverage:    false,
 		ShowQuantity:    false,
 		ShowCoin:        false,
+		ShowSync:        false,
 		FuturesLeverage: 5,
 		PositionPercent: 100,
 		SpotBalance:     1250.50,
@@ -158,6 +162,15 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		}
 	}
 
+	// --- SYNC POPUP LAYER ---
+	if m.ShowSync {
+		if err := m.SyncPopup.Render(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		_ = g.DeleteView("sync_pop")
+	}
+
 	m.applyDynamicStyles(g)
 	return nil
 }
@@ -192,4 +205,11 @@ func (m *Manager) applyDynamicStyles(g *gocui.Gui) {
 
 func SetTerminalSize(rows, cols int) {
 	fmt.Printf("\033[8;%d;%dt", rows, cols)
+}
+
+// AnyPopupOpen returns true if any modal window is currently being displayed
+func (m *Manager) AnyPopupOpen() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.ShowLeverage || m.ShowQuantity || m.ShowCoin || m.ShowSync
 }
