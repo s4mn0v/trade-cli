@@ -18,7 +18,7 @@ func main() {
 
 	m := ui.NewManager()
 	g.SetManagerFunc(m.Layout)
-	m.InitKeybindings(g)
+	_ = m.InitKeybindings(g)
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		log.Panicln(err)

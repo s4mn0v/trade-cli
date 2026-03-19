@@ -128,12 +128,14 @@ func (m *Manager) EnterOrderMode(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// Scroll methods for the Logs panel
+// ScrollUp methods for the Logs panel
 func (m *Manager) ScrollUp(g *gocui.Gui, v *gocui.View) error {
 	if v != nil {
 		ox, oy := v.Origin()
 		if oy > 0 {
-			v.SetOrigin(ox, oy-1)
+			if err := v.SetOrigin(ox, oy-1); err != nil {
+				return nil
+			}
 		}
 	}
 	return nil
@@ -142,12 +144,15 @@ func (m *Manager) ScrollUp(g *gocui.Gui, v *gocui.View) error {
 func (m *Manager) ScrollDown(g *gocui.Gui, v *gocui.View) error {
 	if v != nil {
 		ox, oy := v.Origin()
-		v.SetOrigin(ox, oy+1)
+		if err := v.SetOrigin(ox, oy+1); err != nil {
+			return nil
+		}
 	}
 	return nil
 }
 
 // OpenLeverage checks if mode is Futures then opens popup
+
 func (m *Manager) ConfirmLeverage(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Lock()
 	m.FuturesLeverage = m.LeveragePopup.CurrentVal
@@ -155,8 +160,9 @@ func (m *Manager) ConfirmLeverage(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Unlock()
 
 	m.Logger.Info(fmt.Sprintf("F/Leverage: %d", m.FuturesLeverage))
-	g.SetCurrentView("order_panel")
-	return nil
+
+	_, err := g.SetCurrentView("order_panel")
+	return err
 }
 
 func (m *Manager) ToggleLeverage(g *gocui.Gui, v *gocui.View) error {
@@ -168,13 +174,13 @@ func (m *Manager) ToggleLeverage(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Lock()
 	m.ShowLeverage = !m.ShowLeverage
 	if m.ShowLeverage {
-		// Sync with the global state
-		m.LeveragePopup.CurrentVal = m.FuturesLeverage // Updated name
+		m.LeveragePopup.CurrentVal = m.FuturesLeverage
 	}
 	m.mu.Unlock()
 
 	if !m.ShowLeverage {
-		g.SetCurrentView("order_panel")
+		_, err := g.SetCurrentView("order_panel")
+		return err
 	}
 	return nil
 }
@@ -203,8 +209,8 @@ func (m *Manager) ResetLeverage(g *gocui.Gui, v *gocui.View) error {
 
 func (m *Manager) CloseLeverage(g *gocui.Gui, v *gocui.View) error {
 	m.ShowLeverage = false
-	g.SetCurrentView("order_panel")
-	return nil
+	_, err := g.SetCurrentView("order_panel")
+	return err
 }
 
 // ClearLogs resets the log panel

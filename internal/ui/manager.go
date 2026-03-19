@@ -1,3 +1,4 @@
+// Package ui Manager
 package ui
 
 import (
@@ -20,7 +21,6 @@ type Manager struct {
 	ShowLeverage    bool
 	FuturesLeverage int
 
-	// API-Ready Balance Fields
 	SpotBalance    float64
 	FuturesBalance float64
 
@@ -48,8 +48,9 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 
 	maxX, maxY := g.Size()
 	orderH := 5
-	logW := 45 // Increased from 30 to 45
-	histW := maxX - logW - 1
+
+	histW := 62
+	logX0 := histW + 1
 
 	// 1. Order Panel
 	if v, err := g.SetView("order_panel", 0, 0, maxX-1, orderH, 0); err != nil {
@@ -67,30 +68,34 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		v.Title = title
 		v.Clear()
 		if m.Mode == ModeSpot {
-			fmt.Fprint(v, "\n  (Ctrl+O, b) = Buy | (Ctrl+O, s) = Sell | (Ctrl+S) Spot | (Ctrl+F) Futures")
+			_, _ = fmt.Fprint(v, "\n  (Ctrl+O, b) = Buy | (Ctrl+O, s) = Sell | (Ctrl+S) Spot | (Ctrl+F) Futures")
 		} else {
-			fmt.Fprint(v, "\n  (Ctrl+O, l) = Long | (Ctrl+O, s) = Short | (L) Leverage | (Ctrl+S) Spot | (Ctrl+F) Futures")
+			_, _ = fmt.Fprint(v, "\n  (Ctrl+O, l) = Long | (Ctrl+O, s) = Short | (L) Leverage | (Ctrl+S) Spot | (Ctrl+F) Futures")
 		}
 	}
 
 	// 2. History Panel
 	if v, err := g.SetView("history", 0, orderH+1, histW, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
+		v.Subtitle = " History "
 		m.History.Render(v, histW, m.Mode)
 	}
 
 	// 3. Logs Panel
-	if v, err := g.SetView("logs", histW+1, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
+	if v, err := g.SetView("logs", logX0, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
 		v.Title = " Logs "
 		v.Autoscroll = true
-		v.Wrap = true
+		v.Wrap = true // Your requested wrap
 		m.Logger.Render(v)
-		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
 	}
 
 	if m.ShowLeverage {
-		m.LeveragePopup.Render(g, maxX, maxY)
+		if err := m.LeveragePopup.Render(g, maxX, maxY); err != nil {
+			return err
+		}
 	} else {
-		g.DeleteView("leverage_pop")
+		if err := g.DeleteView("leverage_pop"); err != nil && !errors.Is(err, gocui.ErrUnknownView) {
+			return err
+		}
 	}
 
 	m.applyDynamicStyles(g)
@@ -109,13 +114,17 @@ func (m *Manager) applyDynamicStyles(g *gocui.Gui) {
 		modeColor = gocui.ColorRed // FUTURES
 	}
 
+	selectedRunes := []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
+
 	views := []string{"order_panel", "history", "logs"}
 	for _, name := range views {
 		if v, err := g.View(name); err == nil {
 			if (name == "order_panel" && m.OrderMode) || curr == name {
-				v.FrameColor = gocui.ColorYellow // Active/Warning
+				v.FrameColor = gocui.ColorYellow
+				v.FrameRunes = selectedRunes
 			} else {
-				v.FrameColor = modeColor // Mode Color
+				v.FrameColor = modeColor
+				v.FrameRunes = nil
 			}
 		}
 	}

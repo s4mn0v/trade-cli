@@ -34,20 +34,17 @@ func (l *LeveragePopup) Render(g *gocui.Gui, maxX, maxY int) error {
 		g.SetCurrentView("leverage_pop")
 	}
 
-	// DRAWING LOGIC (Outside the error check to ensure it shows immediately)
 	v.Clear()
 	fmt.Fprintf(v, "\n    Adjust Leverage: \033[1;33m%dx\033[0m\n\n", l.CurrentVal)
 
 	barWidth := 35
 	filled := int(float64(l.CurrentVal) / 125.0 * float64(barWidth))
-	if filled < 1 {
-		filled = 1
-	}
 
+	filled = max(filled, 1)
 	// Progress bar using Invert for high visibility
 	bar := "\033[7m" + strings.Repeat(" ", filled) + "\033[0m" + strings.Repeat("░", barWidth-filled)
 	fmt.Fprintf(v, "    %s\n\n", bar)
-	fmt.Fprintf(v, "    \033[33m[←/→]\033[0m Adjust | \033[33m[R]\033[0m Reset | \033[33m[Enter]\033[0m Set")
+	fmt.Fprintf(v, "    \033[33m[k/j]\033[0m Adjust | \033[33m[r]\033[0m Reset | \033[33m[Enter]\033[0m Set")
 
 	return nil
 }

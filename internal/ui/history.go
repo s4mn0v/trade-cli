@@ -46,9 +46,9 @@ func (h *HistoryTable) Render(v *gocui.View, width int, mode string) {
 	if mode == "FUTURES" {
 		col5 = "PNL"
 	}
-	fmt.Fprintf(v, "  \033[1m%-8s %-11s %-9s %-10s %-8s %-8s\033[0m\n",
-		"PAIR", "DATE", "DIR", "PRICE", col5, "STATUS")
-	fmt.Fprintln(v, "  "+strings.Repeat("─", width-6))
+
+	_, _ = fmt.Fprintf(v, "  \033[1m%-8s %-11s %-9s %-10s %-8s %-8s\033[0m\n", "PAIR", "DATE", "DIR", "PRICE", col5, "STATUS")
+	_, _ = fmt.Fprintln(v, "  "+strings.Repeat("─", width-6))
 
 	// 2. Scrolling Logic
 	_, viewY := v.Size()
@@ -56,27 +56,24 @@ func (h *HistoryTable) Render(v *gocui.View, width int, mode string) {
 	visibleHeight := viewY - headerRows
 	ox, oy := v.Origin()
 	if h.SelectedIdx < oy {
-		v.SetOrigin(ox, h.SelectedIdx)
+		_ = v.SetOrigin(ox, h.SelectedIdx)
 	} else if h.SelectedIdx >= oy+visibleHeight {
-		v.SetOrigin(ox, h.SelectedIdx-visibleHeight+1)
+		_ = v.SetOrigin(ox, h.SelectedIdx-visibleHeight+1)
 	}
 
 	// 3. Row Rendering
 	for i, e := range h.Entries {
 		if i == h.SelectedIdx {
-			// SELECTION: Use "Invert" (\033[7m).
-			// This flips the current terminal theme colors.
-			// We don't apply green/red here to ensure maximum visibility.
 			rowText := fmt.Sprintf("  %-8s %-11s %-9s %-10s %-8s %-8s ",
 				e.Pair, e.Date, e.Direction, e.Price, e.Total, e.Status)
-			fmt.Fprintf(v, "\033[7m%s\033[0m\n", rowText)
+			_, _ = fmt.Fprintf(v, "\033[7m%s\033[0m\n", rowText)
 		} else {
 			// NORMAL: Apply Green/Red to the DIR column
 			dirColor := "\033[32m" // Green
 			if e.Direction == "SHORT" || e.Direction == "SELL" {
 				dirColor = "\033[31m" // Red
 			}
-			fmt.Fprintf(v, "  %-8s %-11s %s%-9s\033[0m %-10s %-8s %-8s\n",
+			_, _ = fmt.Fprintf(v, "  %-8s %-11s %s%-9s\033[0m %-10s %-8s %-8s\n",
 				e.Pair, e.Date, dirColor, e.Direction, e.Price, e.Total, e.Status)
 		}
 	}
