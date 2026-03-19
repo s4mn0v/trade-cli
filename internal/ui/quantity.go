@@ -13,7 +13,7 @@ type QuantityPopup struct {
 }
 
 func NewQuantityPopup() *QuantityPopup {
-	return &QuantityPopup{CurrentVal: 10} // Default 10%
+	return &QuantityPopup{CurrentVal: 100} // Default 10%
 }
 
 func (q *QuantityPopup) Render(g *gocui.Gui, maxX, maxY int, balance float64, mode string) error {

@@ -55,7 +55,7 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	orderH := 5
 
-	histW := 62
+	histW := int(float64(maxX) * 0.70)
 	logX0 := histW + 1
 
 	// 1. Order Panel
