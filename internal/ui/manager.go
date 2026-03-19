@@ -20,6 +20,8 @@ type Manager struct {
 	Mode            string
 	ShowLeverage    bool
 	ShowQuantity    bool
+	ShowCoin        bool
+	CurrentCoin     string
 	FuturesLeverage int
 	PositionPercent int
 
@@ -30,6 +32,7 @@ type Manager struct {
 	Logger        *UILogger
 	LeveragePopup *LeveragePopup
 	QuantityPopup *QuantityPopup
+	CoinPopup     *CoinPopup
 }
 
 func NewManager() *Manager {
@@ -39,12 +42,15 @@ func NewManager() *Manager {
 		Mode:            ModeSpot,
 		LeveragePopup:   NewLeveragePopup(),
 		QuantityPopup:   NewQuantityPopup(),
+		CoinPopup:       NewCoinPopup(),
 		ShowLeverage:    false,
 		ShowQuantity:    false,
+		ShowCoin:        false,
 		FuturesLeverage: 5,
 		PositionPercent: 100,
 		SpotBalance:     1250.50,
 		FuturesBalance:  500.00,
+		CurrentCoin:     "BTCUSDT",
 	}
 }
 
@@ -110,6 +116,23 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	} else {
 		if err := g.DeleteView("leverage_pop"); err != nil && !errors.Is(err, gocui.ErrUnknownView) {
 			return err
+		}
+	}
+
+	// --- COIN POPUP LAYER ---
+	if m.ShowCoin {
+		input := ""
+		if v, err := g.View("coin_pop"); err == nil {
+			input = v.Buffer()
+		}
+		if err := m.CoinPopup.Render(g, maxX, maxY, input); err != nil {
+			return err
+		}
+		g.Cursor = true // Show cursor for editing
+	} else {
+		_ = g.DeleteView("coin_pop")
+		if !m.ShowQuantity && !m.ShowLeverage {
+			g.Cursor = false
 		}
 	}
 

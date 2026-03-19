@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/awesome-gocui/gocui"
@@ -261,6 +262,55 @@ func (m *Manager) ResetQuantity(g *gocui.Gui, v *gocui.View) error {
 
 func (m *Manager) CloseQuantity(g *gocui.Gui, v *gocui.View) error {
 	m.ShowQuantity = false
+	_, err := g.SetCurrentView("order_panel")
+	return err
+}
+
+func (m *Manager) ToggleCoinPopup(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.ShowCoin = !m.ShowCoin
+	m.mu.Unlock()
+
+	if !m.ShowCoin {
+		_, err := g.SetCurrentView("order_panel")
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) ConfirmCoin(g *gocui.Gui, v *gocui.View) error {
+	// 1. Get current buffer text
+	rawInput := strings.TrimSpace(v.Buffer())
+	input := strings.ToUpper(rawInput)
+
+	// 2. Check for matches/suggestions
+	matches := m.CoinPopup.GetMatches(input)
+
+	var finalCoin string
+
+	if m.CoinPopup.IsValid(input) {
+		// User typed it perfectly
+		finalCoin = input
+	} else if len(matches) > 0 {
+		// User typed a partial name (e.g., "BT") -> Auto-complete to first match ("BTCUSDT")
+		finalCoin = matches[0]
+	} else {
+		// No match found at all: Clear and let them try again
+		v.Clear()
+		v.SetCursor(0, 0)
+		m.Logger.Error(fmt.Sprintf("No matches for: %s", input))
+		return nil
+	}
+
+	// 3. Set the coin and close
+	m.mu.Lock()
+	m.CurrentCoin = finalCoin
+	m.ShowCoin = false
+	m.mu.Unlock()
+
+	m.Logger.Info(fmt.Sprintf("Coin set to: %s (Success)", finalCoin))
+
+	// Return focus to the main panel
 	_, err := g.SetCurrentView("order_panel")
 	return err
 }

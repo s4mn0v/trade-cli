@@ -4,67 +4,42 @@ import "github.com/awesome-gocui/gocui"
 
 func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	// Global Actions
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, m.Quit); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, m.ToggleFocus); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("", gocui.KeyCtrlL, gocui.ModNone, m.ClearLogs); err != nil {
-		return err
-	}
+	_ = g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, m.Quit)
+	_ = g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, m.ToggleFocus)
+	_ = g.SetKeybinding("", gocui.KeyCtrlL, gocui.ModNone, m.ClearLogs)
 
 	// --- Mode Switching ---
-	if err := g.SetKeybinding("", gocui.KeyCtrlS, gocui.ModNone, m.SetModeSpot); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("", gocui.KeyCtrlF, gocui.ModNone, m.SetModeFutures); err != nil {
-		return err
-	}
+	_ = g.SetKeybinding("", gocui.KeyCtrlS, gocui.ModNone, m.SetModeSpot)
+	_ = g.SetKeybinding("", gocui.KeyCtrlF, gocui.ModNone, m.SetModeFutures)
 
 	// Order Mode
-	if err := g.SetKeybinding("", gocui.KeyCtrlO, gocui.ModNone, m.EnterOrderMode); err != nil {
-		return err
-	}
+	_ = g.SetKeybinding("", gocui.KeyCtrlO, gocui.ModNone, m.EnterOrderMode)
 
 	// Actions: B/L for Positive direction, S for Negative direction
-	if err := g.SetKeybinding("", 'b', gocui.ModNone, m.HandleAction1); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("", 'l', gocui.ModNone, m.HandleAction1); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("", 's', gocui.ModNone, m.HandleAction2); err != nil {
-		return err
-	}
+	_ = g.SetKeybinding("", 'b', gocui.ModNone, m.HandleAction1)
+	_ = g.SetKeybinding("", 'l', gocui.ModNone, m.HandleAction1)
+	_ = g.SetKeybinding("", 's', gocui.ModNone, m.HandleAction2)
 
 	// History Panel Navigation (Selection)
-	if err := g.SetKeybinding("history", gocui.KeyArrowUp, gocui.ModNone, m.HistoryUp); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("history", gocui.KeyArrowDown, gocui.ModNone, m.HistoryDown); err != nil {
-		return err
-	}
+	_ = g.SetKeybinding("history", gocui.KeyArrowUp, gocui.ModNone, m.HistoryUp)
+	_ = g.SetKeybinding("history", gocui.KeyArrowDown, gocui.ModNone, m.HistoryDown)
 
 	// Leverage Panel
-	if err := g.SetKeybinding("", 'L', gocui.ModNone, m.ToggleLeverage); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("leverage_pop", 'k', gocui.ModNone, m.LeverageUp); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("leverage_pop", 'j', gocui.ModNone, m.LeverageDown); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("leverage_pop", gocui.KeyEsc, gocui.ModNone, m.CloseLeverage); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("leverage_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmLeverage); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("leverage_pop", 'r', gocui.ModNone, m.ResetLeverage); err != nil {
-		return err
-	}
+	_ = g.SetKeybinding("", 'L', gocui.ModNone, m.ToggleLeverage)
+	_ = g.SetKeybinding("leverage_pop", 'k', gocui.ModNone, m.LeverageUp)
+	_ = g.SetKeybinding("leverage_pop", 'j', gocui.ModNone, m.LeverageDown)
+	_ = g.SetKeybinding("leverage_pop", gocui.KeyEsc, gocui.ModNone, m.CloseLeverage)
+	_ = g.SetKeybinding("leverage_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmLeverage)
+	_ = g.SetKeybinding("leverage_pop", 'r', gocui.ModNone, m.ResetLeverage)
+
+	// Open Coin Popup with 'p'
+	_ = g.SetKeybinding("", 'p', gocui.ModNone, m.ToggleCoinPopup)
+
+	// Keys inside Coin Popup
+	_ = g.SetKeybinding("coin_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmCoin)
+
+	// Allow escaping if they want to cancel (optional, remove if you want to FORCE selection)
+	_ = g.SetKeybinding("coin_pop", gocui.KeyEsc, gocui.ModNone, m.ToggleCoinPopup)
 
 	// Quantity Panel (Shift + Q)
 	_ = g.SetKeybinding("", 'Q', gocui.ModNone, m.ToggleQuantity)
@@ -77,12 +52,8 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	_ = g.SetKeybinding("quantity_pop", 'r', gocui.ModNone, m.ResetQuantity)
 
 	// Logs Panel Navigation (Scrolling)
-	if err := g.SetKeybinding("logs", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("logs", gocui.KeyArrowDown, gocui.ModNone, m.ScrollDown); err != nil {
-		return err
-	}
+	_ = g.SetKeybinding("logs", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp)
+	_ = g.SetKeybinding("logs", gocui.KeyArrowDown, gocui.ModNone, m.ScrollDown)
 
 	return nil
 }
