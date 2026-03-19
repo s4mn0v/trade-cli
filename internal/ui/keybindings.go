@@ -54,5 +54,10 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	_ = g.SetKeybinding("logs", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp)
 	_ = g.SetKeybinding("logs", gocui.KeyArrowDown, gocui.ModNone, m.ScrollDown)
 
+	// Timers
+	_ = g.SetKeybinding("", 'T', gocui.ModNone, m.ToggleSync)
+	_ = g.SetKeybinding("sync_pop", gocui.KeyEsc, gocui.ModNone, m.ToggleSync)
+	_ = g.SetKeybinding("sync_pop", 'q', gocui.ModNone, m.ToggleSync)
+
 	return nil
 }

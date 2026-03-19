@@ -11,6 +11,11 @@ import (
 func (m *Manager) Quit(g *gocui.Gui, v *gocui.View) error { return gocui.ErrQuit }
 
 func (m *Manager) ToggleFocus(g *gocui.Gui, v *gocui.View) error {
+	// NEW: If a popup is open, ignore the Tab key
+	if m.AnyPopupOpen() {
+		return nil
+	}
+
 	order, history, logs := "order_panel", "history", "logs"
 	target := history
 	if v != nil {
@@ -480,16 +485,30 @@ func (m *Manager) ConfirmCoin(g *gocui.Gui, v *gocui.View) error {
 	return err
 }
 
-// ClearLogs resets the log panel
-func (m *Manager) ClearLogs(g *gocui.Gui, v *gocui.View) error {
-	m.Logger.Clear()
-	return nil
-}
-
 // SetBalances thread-safe way to update the account available balance
 func (m *Manager) SetBalances(spot, futures float64) {
 	m.mu.Lock()
 	m.SpotBalance = spot
 	m.FuturesBalance = futures
 	m.mu.Unlock()
+}
+
+// ToggleSync Timers
+func (m *Manager) ToggleSync(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.ShowSync = !m.ShowSync
+	m.mu.Unlock()
+
+	if !m.ShowSync {
+		_ = g.DeleteView("sync_pop")
+		_, err := g.SetCurrentView("order_panel")
+		return err
+	}
+	return nil
+}
+
+// ClearLogs resets the log panel
+func (m *Manager) ClearLogs(g *gocui.Gui, v *gocui.View) error {
+	m.Logger.Clear()
+	return nil
 }
