@@ -31,11 +31,11 @@ func (l *LeveragePopup) Render(g *gocui.Gui, maxX, maxY int) error {
 		v.FrameColor = gocui.ColorYellow
 		v.Overlaps = 0
 		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
-		g.SetCurrentView("leverage_pop")
+		_, _ = g.SetCurrentView("leverage_pop")
 	}
 
 	v.Clear()
-	fmt.Fprintf(v, "\n    Adjust Leverage: \033[1;33m%dx\033[0m\n\n", l.CurrentVal)
+	_, _ = fmt.Fprintf(v, "\n    Adjust Leverage: \033[1;33m%dx\033[0m\n\n", l.CurrentVal)
 
 	barWidth := 35
 	filled := int(float64(l.CurrentVal) / 125.0 * float64(barWidth))
@@ -43,8 +43,8 @@ func (l *LeveragePopup) Render(g *gocui.Gui, maxX, maxY int) error {
 	filled = max(filled, 1)
 	// Progress bar using Invert for high visibility
 	bar := "\033[7m" + strings.Repeat(" ", filled) + "\033[0m" + strings.Repeat("░", barWidth-filled)
-	fmt.Fprintf(v, "    %s\n\n", bar)
-	fmt.Fprintf(v, "    \033[33m[k/j]\033[0m Adjust | \033[33m[r]\033[0m Reset | \033[33m[Enter]\033[0m Set")
+	_, _ = fmt.Fprintf(v, "    %s\n\n", bar)
+	_, _ = fmt.Fprintf(v, "    \033[33m[k/j]\033[0m Adjust | \033[33m[r]\033[0m Reset | \033[33m[Enter]\033[0m Set")
 
 	return nil
 }
