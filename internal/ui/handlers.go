@@ -297,7 +297,7 @@ func (m *Manager) ConfirmCoin(g *gocui.Gui, v *gocui.View) error {
 	} else {
 		// No match found at all: Clear and let them try again
 		v.Clear()
-		v.SetCursor(0, 0)
+		_ = v.SetCursor(0, 0)
 		m.Logger.Error(fmt.Sprintf("No matches for: %s", input))
 		return nil
 	}
