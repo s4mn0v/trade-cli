@@ -68,7 +68,6 @@ func (h *HistoryTable) Render(v *gocui.View, width int, mode string) {
 				e.Pair, e.Date, e.Direction, e.Price, e.Total, e.Status)
 			_, _ = fmt.Fprintf(v, "\033[7m%s\033[0m\n", rowText)
 		} else {
-			// NORMAL: Apply Green/Red to the DIR column
 			dirColor := "\033[32m" // Green
 			if e.Direction == "SHORT" || e.Direction == "SELL" {
 				dirColor = "\033[31m" // Red

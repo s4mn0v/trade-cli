@@ -279,17 +279,14 @@ func (m *Manager) ToggleCoinPopup(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (m *Manager) ConfirmCoin(g *gocui.Gui, v *gocui.View) error {
-	// 1. Get current buffer text
 	rawInput := strings.TrimSpace(v.Buffer())
 	input := strings.ToUpper(rawInput)
 
-	// 2. Check for matches/suggestions
 	matches := m.CoinPopup.GetMatches(input)
 
 	var finalCoin string
 
 	if m.CoinPopup.IsValid(input) {
-		// User typed it perfectly
 		finalCoin = input
 	} else if len(matches) > 0 {
 		// User typed a partial name (e.g., "BT") -> Auto-complete to first match ("BTCUSDT")
@@ -310,7 +307,6 @@ func (m *Manager) ConfirmCoin(g *gocui.Gui, v *gocui.View) error {
 
 	m.Logger.Info(fmt.Sprintf("Coin set to: %s (Success)", finalCoin))
 
-	// Return focus to the main panel
 	_, err := g.SetCurrentView("order_panel")
 	return err
 }

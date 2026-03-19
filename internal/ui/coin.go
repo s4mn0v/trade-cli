@@ -13,7 +13,6 @@ type CoinPopup struct {
 
 func NewCoinPopup() *CoinPopup {
 	return &CoinPopup{
-		// Preset dataset for autocomplete/validation
 		Suggestions: []string{"BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "LINKUSDT", "DOTUSDT", "MATICUSDT", "XRPUSDT"},
 	}
 }
@@ -30,14 +29,13 @@ func (c *CoinPopup) Render(g *gocui.Gui, maxX, maxY int, currentInput string) er
 		}
 		v.Title = " Enter Coin (e.g. BTCUSDT) "
 		v.FrameColor = gocui.ColorCyan
-		v.Editable = true // Enable text input like the snippet
+		v.Editable = true // Enable text input
 		v.Editor = gocui.DefaultEditor
 
-		// Set focus immediately
 		_, _ = g.SetCurrentView("coin_pop")
 	}
 
-	// Logic for displaying suggestions based on current input
+	// Displaying suggestions based on current input
 	matches := []string{}
 	upperInput := strings.ToUpper(strings.TrimSpace(currentInput))
 	if upperInput != "" {
@@ -78,8 +76,6 @@ func (c *CoinPopup) GetMatches(input string) []string {
 
 	matches := []string{}
 	for _, s := range c.Suggestions {
-		// Use HasPrefix if you want strict "starts with"
-		// or strings.Contains for more flexible searching
 		if strings.HasPrefix(s, upperInput) {
 			matches = append(matches, s)
 		}

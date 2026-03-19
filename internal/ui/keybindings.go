@@ -24,7 +24,7 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	_ = g.SetKeybinding("history", gocui.KeyArrowUp, gocui.ModNone, m.HistoryUp)
 	_ = g.SetKeybinding("history", gocui.KeyArrowDown, gocui.ModNone, m.HistoryDown)
 
-	// Leverage Panel
+	// Leverage Popup
 	_ = g.SetKeybinding("", 'L', gocui.ModNone, m.ToggleLeverage)
 	_ = g.SetKeybinding("leverage_pop", 'k', gocui.ModNone, m.LeverageUp)
 	_ = g.SetKeybinding("leverage_pop", 'j', gocui.ModNone, m.LeverageDown)
@@ -32,19 +32,13 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	_ = g.SetKeybinding("leverage_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmLeverage)
 	_ = g.SetKeybinding("leverage_pop", 'r', gocui.ModNone, m.ResetLeverage)
 
-	// Open Coin Popup with 'p'
+	// Coin Popup
 	_ = g.SetKeybinding("", 'p', gocui.ModNone, m.ToggleCoinPopup)
-
-	// Keys inside Coin Popup
 	_ = g.SetKeybinding("coin_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmCoin)
-
-	// Allow escaping if they want to cancel (optional, remove if you want to FORCE selection)
 	_ = g.SetKeybinding("coin_pop", gocui.KeyEsc, gocui.ModNone, m.ToggleCoinPopup)
 
-	// Quantity Panel (Shift + Q)
+	// Quantity Panel
 	_ = g.SetKeybinding("", 'Q', gocui.ModNone, m.ToggleQuantity)
-
-	// Keys inside Quantity Popup
 	_ = g.SetKeybinding("quantity_pop", 'k', gocui.ModNone, m.QuantityUp)
 	_ = g.SetKeybinding("quantity_pop", 'j', gocui.ModNone, m.QuantityDown)
 	_ = g.SetKeybinding("quantity_pop", gocui.KeyEsc, gocui.ModNone, m.CloseQuantity)
