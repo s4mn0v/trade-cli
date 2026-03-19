@@ -213,6 +213,58 @@ func (m *Manager) CloseLeverage(g *gocui.Gui, v *gocui.View) error {
 	return err
 }
 
+// ToggleQuantity opens the percentage popup
+func (m *Manager) ToggleQuantity(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.ShowQuantity = !m.ShowQuantity
+	if m.ShowQuantity {
+		m.QuantityPopup.CurrentVal = m.PositionPercent
+	}
+	m.mu.Unlock()
+
+	if !m.ShowQuantity {
+		_, err := g.SetCurrentView("order_panel")
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) QuantityUp(g *gocui.Gui, v *gocui.View) error {
+	if m.QuantityPopup.CurrentVal < 100 {
+		m.QuantityPopup.CurrentVal += 5 // Step by 5%
+	}
+	return nil
+}
+
+func (m *Manager) QuantityDown(g *gocui.Gui, v *gocui.View) error {
+	if m.QuantityPopup.CurrentVal > 0 {
+		m.QuantityPopup.CurrentVal -= 5
+	}
+	return nil
+}
+
+func (m *Manager) ConfirmQuantity(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.PositionPercent = m.QuantityPopup.CurrentVal
+	m.ShowQuantity = false
+	m.mu.Unlock()
+
+	m.Logger.Info(fmt.Sprintf("Size Set: %d%%", m.PositionPercent))
+	_, err := g.SetCurrentView("order_panel")
+	return err
+}
+
+func (m *Manager) ResetQuantity(g *gocui.Gui, v *gocui.View) error {
+	m.QuantityPopup.CurrentVal = 10
+	return nil
+}
+
+func (m *Manager) CloseQuantity(g *gocui.Gui, v *gocui.View) error {
+	m.ShowQuantity = false
+	_, err := g.SetCurrentView("order_panel")
+	return err
+}
+
 // ClearLogs resets the log panel
 func (m *Manager) ClearLogs(g *gocui.Gui, v *gocui.View) error {
 	m.Logger.Clear()

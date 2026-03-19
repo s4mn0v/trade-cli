@@ -66,6 +66,16 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 		return err
 	}
 
+	// Quantity Panel (Shift + Q)
+	_ = g.SetKeybinding("", 'Q', gocui.ModNone, m.ToggleQuantity)
+
+	// Keys inside Quantity Popup
+	_ = g.SetKeybinding("quantity_pop", 'k', gocui.ModNone, m.QuantityUp)
+	_ = g.SetKeybinding("quantity_pop", 'j', gocui.ModNone, m.QuantityDown)
+	_ = g.SetKeybinding("quantity_pop", gocui.KeyEsc, gocui.ModNone, m.CloseQuantity)
+	_ = g.SetKeybinding("quantity_pop", gocui.KeyEnter, gocui.ModNone, m.ConfirmQuantity)
+	_ = g.SetKeybinding("quantity_pop", 'r', gocui.ModNone, m.ResetQuantity)
+
 	// Logs Panel Navigation (Scrolling)
 	if err := g.SetKeybinding("logs", gocui.KeyArrowUp, gocui.ModNone, m.ScrollUp); err != nil {
 		return err

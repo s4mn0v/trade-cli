@@ -19,7 +19,9 @@ type Manager struct {
 	OrderMode       bool
 	Mode            string
 	ShowLeverage    bool
+	ShowQuantity    bool
 	FuturesLeverage int
+	PositionPercent int
 
 	SpotBalance    float64
 	FuturesBalance float64
@@ -27,6 +29,7 @@ type Manager struct {
 	History       *HistoryTable
 	Logger        *UILogger
 	LeveragePopup *LeveragePopup
+	QuantityPopup *QuantityPopup
 }
 
 func NewManager() *Manager {
@@ -35,8 +38,11 @@ func NewManager() *Manager {
 		Logger:          NewUILogger(),
 		Mode:            ModeSpot,
 		LeveragePopup:   NewLeveragePopup(),
+		QuantityPopup:   NewQuantityPopup(),
 		ShowLeverage:    false,
+		ShowQuantity:    false,
 		FuturesLeverage: 5,
+		PositionPercent: 100,
 		SpotBalance:     1250.50,
 		FuturesBalance:  500.00,
 	}
@@ -53,17 +59,12 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	logX0 := histW + 1
 
 	// 1. Order Panel
-	if v, err := g.SetView("order_panel", 0, 0, maxX-1, orderH, 0); err != nil {
-		if !errors.Is(err, gocui.ErrUnknownView) {
-			return err
-		}
-		g.SetCurrentView("order_panel")
-	} else {
+	if v, err := g.SetView("order_panel", 0, 0, maxX-1, orderH, 0); err == nil {
 		var title string
 		if m.Mode == ModeSpot {
-			title = fmt.Sprintf(" Place order [%s] [Avbl: %.2f USDT] ", m.Mode, m.SpotBalance)
+			title = fmt.Sprintf(" Place order [%s] [%d%%] [Avbl: %.2f USDT] ", m.Mode, m.PositionPercent, m.SpotBalance)
 		} else {
-			title = fmt.Sprintf(" Place order [%s] [%dx] [Avbl: %.2f USDT] ", m.Mode, m.FuturesLeverage, m.FuturesBalance)
+			title = fmt.Sprintf(" Place order [%s] [%dx] [%d%%] [Avbl: %.2f USDT] ", m.Mode, m.FuturesLeverage, m.PositionPercent, m.FuturesBalance)
 		}
 		v.Title = title
 		v.Clear()
@@ -88,6 +89,20 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		m.Logger.Render(v)
 	}
 
+	// --- QUANTITY POPUP LAYER ---
+	if m.ShowQuantity {
+		balance := m.SpotBalance
+		if m.Mode == ModeFutures {
+			balance = m.FuturesBalance
+		}
+		if err := m.QuantityPopup.Render(g, maxX, maxY, balance, m.Mode); err != nil {
+			return err
+		}
+	} else {
+		_ = g.DeleteView("quantity_pop")
+	}
+
+	// --- LEVERAGEPOPUP LAYER ---
 	if m.ShowLeverage {
 		if err := m.LeveragePopup.Render(g, maxX, maxY); err != nil {
 			return err
