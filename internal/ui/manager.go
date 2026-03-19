@@ -4,6 +4,7 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/awesome-gocui/gocui"
@@ -26,6 +27,7 @@ type Manager struct {
 	PositionPercent int
 
 	SpotBalance    float64
+	SpotAssets     map[string]float64
 	FuturesBalance float64
 
 	History       *HistoryTable
@@ -33,6 +35,7 @@ type Manager struct {
 	LeveragePopup *LeveragePopup
 	QuantityPopup *QuantityPopup
 	CoinPopup     *CoinPopup
+	Positions     *PositionList
 }
 
 func NewManager() *Manager {
@@ -43,14 +46,20 @@ func NewManager() *Manager {
 		LeveragePopup:   NewLeveragePopup(),
 		QuantityPopup:   NewQuantityPopup(),
 		CoinPopup:       NewCoinPopup(),
+		Positions:       NewPositionList(),
 		ShowLeverage:    false,
 		ShowQuantity:    false,
 		ShowCoin:        false,
 		FuturesLeverage: 5,
 		PositionPercent: 100,
 		SpotBalance:     1250.50,
-		FuturesBalance:  500.00,
-		CurrentCoin:     "BTCUSDT",
+		SpotAssets: map[string]float64{
+			"BTC": 0.052,
+			"ETH": 1.2,
+			"SOL": 15.0,
+		},
+		FuturesBalance: 500.00,
+		CurrentCoin:    "BTCUSDT",
 	}
 }
 
@@ -59,25 +68,38 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	defer m.mu.RUnlock()
 
 	maxX, maxY := g.Size()
-	orderH := 5
+	orderH := 12
 
 	histW := int(float64(maxX) * 0.70)
 	logX0 := histW + 1
+
+	// Helper to get the base asset (e.g., "BTC" from "BTCUSDT")
+	baseAsset := strings.TrimSuffix(m.CurrentCoin, "USDT")
+	assetAmount := m.SpotAssets[baseAsset]
 
 	// 1. Order Panel
 	if v, err := g.SetView("order_panel", 0, 0, maxX-1, orderH, 0); err == nil {
 		var title string
 		if m.Mode == ModeSpot {
-			title = fmt.Sprintf(" Place order [%s] [%d%%] [Avbl: %.2f USDT] ", m.Mode, m.PositionPercent, m.SpotBalance)
+			title = fmt.Sprintf(" %s SPOT | Size: %d%% | Avbl: %.2f USDT | %.4f %s ", m.CurrentCoin, m.PositionPercent, m.SpotBalance, assetAmount, baseAsset)
 		} else {
-			title = fmt.Sprintf(" Place order [%s] [%dx] [%d%%] [Avbl: %.2f USDT] ", m.Mode, m.FuturesLeverage, m.PositionPercent, m.FuturesBalance)
+			title = fmt.Sprintf(" %s FUTURES | %dx | Size: %d%% | Avbl: %.2f USDT ", m.CurrentCoin, m.FuturesLeverage, m.PositionPercent, m.FuturesBalance)
 		}
 		v.Title = title
 		v.Clear()
+
 		if m.Mode == ModeSpot {
-			_, _ = fmt.Fprint(v, "\n  (Ctrl+O, b) = Buy | (Ctrl+O, s) = Sell | (Ctrl+S) Spot | (Ctrl+F) Futures")
+			// Spot View: Show Buy/Sell instructions
+			_, _ = fmt.Fprintf(v, "\n  \033[32m(b) BUY %s\033[0m (Spend USDT) | \033[31m(s) SELL %s\033[0m (Spend %s)", baseAsset, baseAsset, baseAsset)
+			_, _ = fmt.Fprint(v, "\n  (Ctrl+O) Order Mode | (p) Change Coin | (Q) Set Size")
+			_, _ = fmt.Fprint(v, "\n\n  \033[90mSpot mode enabled. View history below.\033[0m")
 		} else {
-			_, _ = fmt.Fprint(v, "\n  (Ctrl+O, l) = Long | (Ctrl+O, s) = Short | (L) Leverage | (Ctrl+S) Spot | (Ctrl+F) Futures")
+			// Futures View: Show Long/Short instructions and the Positions Table
+			_, _ = fmt.Fprint(v, "\n  \033[32m(l) LONG\033[0m | \033[31m(s) SHORT\033[0m | \033[33m(c) CLOSE SELECTED\033[0m")
+			_, _ = fmt.Fprint(v, "\n  (L) Leverage | (Q) Quantity | (p) Coin | (Tab) Switch Focus")
+
+			// Draw the horizontal line and positions table
+			m.Positions.Render(v, maxX)
 		}
 	}
 
@@ -91,7 +113,7 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	if v, err := g.SetView("logs", logX0, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
 		v.Title = " Logs "
 		v.Autoscroll = true
-		v.Wrap = true // Your requested wrap
+		v.Wrap = true
 		m.Logger.Render(v)
 	}
 
@@ -128,7 +150,7 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		if err := m.CoinPopup.Render(g, maxX, maxY, input); err != nil {
 			return err
 		}
-		g.Cursor = true // Show cursor for editing
+		g.Cursor = true
 	} else {
 		_ = g.DeleteView("coin_pop")
 		if !m.ShowQuantity && !m.ShowLeverage {
