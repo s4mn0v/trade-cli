@@ -23,6 +23,7 @@ type Manager struct {
 	ShowQuantity    bool
 	ShowCoin        bool
 	ShowSync        bool
+	ShowAPI         bool
 	CurrentCoin     string
 	FuturesLeverage int
 	PositionPercent int
@@ -35,6 +36,7 @@ type Manager struct {
 	Logger        *UILogger
 	LeveragePopup *LeveragePopup
 	QuantityPopup *QuantityPopup
+	APIPopup      *APIConfigPopup
 	CoinPopup     *CoinPopup
 	SyncPopup     *SyncPopup
 	Positions     *PositionList
@@ -54,6 +56,8 @@ func NewManager() *Manager {
 		ShowQuantity:    false,
 		ShowCoin:        false,
 		ShowSync:        false,
+		ShowAPI:         false,
+		APIPopup:        &APIConfigPopup{FocusedField: 0},
 		FuturesLeverage: 5,
 		PositionPercent: 100,
 		SpotBalance:     1250.50,
@@ -169,6 +173,19 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		}
 	} else {
 		_ = g.DeleteView("sync_pop")
+	}
+
+	// --- API CONFIG POPUP ---
+	if m.ShowAPI {
+		if err := m.APIPopup.Render(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		// Clean up all 4 views when closed
+		_ = g.DeleteView("api_pop")
+		_ = g.DeleteView("api_key")
+		_ = g.DeleteView("api_secret")
+		_ = g.DeleteView("api_pass")
 	}
 
 	m.applyDynamicStyles(g)

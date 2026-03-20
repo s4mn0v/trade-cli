@@ -1,11 +1,14 @@
 package ui
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/s4mn0v/bitget/config"
+	v2 "github.com/s4mn0v/bitget/pkg/client/v2"
 )
 
 func (m *Manager) Quit(g *gocui.Gui, v *gocui.View) error { return gocui.ErrQuit }
@@ -511,4 +514,110 @@ func (m *Manager) ToggleSync(g *gocui.Gui, v *gocui.View) error {
 func (m *Manager) ClearLogs(g *gocui.Gui, v *gocui.View) error {
 	m.Logger.Clear()
 	return nil
+}
+
+func (m *Manager) ToggleAPIPopup(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.ShowAPI = !m.ShowAPI
+	m.APIPopup.FocusedField = 0 // Reset focus to first field
+	m.mu.Unlock()
+
+	if !m.ShowAPI {
+		g.Cursor = false
+		_, err := g.SetCurrentView("order_panel")
+		return err
+	}
+	return nil
+}
+
+// NextApiField cycles through the 3 input boxes
+
+func (m *Manager) NextAPIField(g *gocui.Gui, v *gocui.View) error {
+	m.APIPopup.FocusedField = (m.APIPopup.FocusedField + 1) % 3
+	return nil
+}
+
+// SaveApiConfig takes the data and pushes it to the SDK
+
+// Helper struct to parse Bitget response
+type bitgetBasicResp struct {
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
+}
+
+func (m *Manager) SaveAPIConfig(g *gocui.Gui, v *gocui.View) error {
+	vKey, _ := g.View("api_key")
+	vSec, _ := g.View("api_secret")
+	vPas, _ := g.View("api_pass")
+
+	key := strings.TrimSpace(vKey.Buffer())
+	sec := strings.TrimSpace(vSec.Buffer())
+	pas := strings.TrimSpace(vPas.Buffer())
+
+	if key == "" || sec == "" || pas == "" {
+		m.Logger.Error("API Setup: Missing Fields")
+		return nil
+	}
+
+	// 1. Temporarily lock UI for validation
+	m.mu.Lock()
+	m.APIPopup.Validating = true
+	m.mu.Unlock()
+
+	// 2. Inject credentials into SDK memory
+	config.ApiKey = key
+	config.SecretKey = sec
+	config.PASSPHRASE = pas
+
+	// 3. Test viability (Run in separate goroutine to avoid freezing UI)
+	go func() {
+		client := new(v2.SpotAccountClient).Init()
+		resp, err := client.Info() // Calls GET /api/v2/spot/account/info
+
+		g.Update(func(g *gocui.Gui) error {
+			m.mu.Lock()
+			m.APIPopup.Validating = false
+			m.mu.Unlock()
+
+			if err != nil {
+				m.Logger.Error(fmt.Sprintf("Network Error: %v", err))
+				return nil
+			}
+
+			// Parse response
+			var bResp bitgetBasicResp
+			_ = json.Unmarshal([]byte(resp), &bResp)
+
+			if bResp.Code == "00000" {
+				// SUCCESS: Key is viable!
+				m.Logger.Info("Bitget API: Connection Verified (Success)")
+				m.mu.Lock()
+				m.ShowAPI = false
+				m.mu.Unlock()
+				_, _ = g.SetCurrentView("order_panel")
+			} else {
+				// FAILURE: Key is invalid or IP blocked
+				m.handleAPIError(bResp.Code, bResp.Msg)
+			}
+			return nil
+		})
+	}()
+
+	return nil
+}
+
+// Maps Bitget error codes to human readable logs
+func (m *Manager) handleAPIError(code, msg string) {
+	switch code {
+	case "40006", "40012", "40037":
+		m.Logger.Error("Bitget Error: Invalid Key, Secret, or Passphrase")
+	case "40038":
+		m.Logger.Error("Bitget Error: IP Address not whitelisted in Bitget Settings")
+	case "40008":
+		m.Logger.Error("Bitget Error: System clock out of sync. Please sync your Windows/Linux time.")
+	case "40014":
+		m.Logger.Error("Bitget Error: Key is valid but lacks 'Spot/Futures' permissions")
+	default:
+		m.Logger.Error(fmt.Sprintf("Bitget Error [%s]: %s", code, msg))
+	}
 }

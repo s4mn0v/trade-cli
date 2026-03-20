@@ -59,5 +59,18 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 	_ = g.SetKeybinding("sync_pop", gocui.KeyEsc, gocui.ModNone, m.ToggleSync)
 	_ = g.SetKeybinding("sync_pop", 'q', gocui.ModNone, m.ToggleSync)
 
+	// API Menu
+	_ = g.SetKeybinding("", gocui.KeyCtrlA, gocui.ModNone, m.ToggleAPIPopup)
+	// Inputs logic inside popup
+	popFields := []string{"api_key", "api_secret", "api_pass"}
+	for _, field := range popFields {
+		// Tab to switch to next field
+		_ = g.SetKeybinding(field, gocui.KeyTab, gocui.ModNone, m.NextAPIField)
+		// Enter to save all
+		_ = g.SetKeybinding(field, gocui.KeyEnter, gocui.ModNone, m.SaveAPIConfig)
+		// Esc to cancel
+		_ = g.SetKeybinding(field, gocui.KeyEsc, gocui.ModNone, m.ToggleAPIPopup)
+	}
+
 	return nil
 }
