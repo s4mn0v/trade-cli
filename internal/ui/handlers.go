@@ -540,9 +540,11 @@ func (m *Manager) NextAPIField(g *gocui.Gui, v *gocui.View) error {
 // SaveApiConfig takes the data and pushes it to the SDK
 
 // Helper struct to parse Bitget response
-type bitgetBasicResp struct {
+type bitgetAccountInfo struct {
 	Code string `json:"code"`
-	Msg  string `json:"msg"`
+	Data struct {
+		UserId string `json:"userId"`
+	} `json:"data"`
 }
 
 func (m *Manager) SaveAPIConfig(g *gocui.Gui, v *gocui.View) error {
@@ -565,14 +567,15 @@ func (m *Manager) SaveAPIConfig(g *gocui.Gui, v *gocui.View) error {
 	m.mu.Unlock()
 
 	// 2. Inject credentials into SDK memory
-	config.ApiKey = key
+	config.APIKey = key
 	config.SecretKey = sec
 	config.PASSPHRASE = pas
 
 	// 3. Test viability (Run in separate goroutine to avoid freezing UI)
+
 	go func() {
 		client := new(v2.SpotAccountClient).Init()
-		resp, err := client.Info() // Calls GET /api/v2/spot/account/info
+		resp, err := client.Info()
 
 		g.Update(func(g *gocui.Gui) error {
 			m.mu.Lock()
@@ -584,20 +587,38 @@ func (m *Manager) SaveAPIConfig(g *gocui.Gui, v *gocui.View) error {
 				return nil
 			}
 
-			// Parse response
-			var bResp bitgetBasicResp
-			_ = json.Unmarshal([]byte(resp), &bResp)
+			var info bitgetAccountInfo
+			_ = json.Unmarshal([]byte(resp), &info)
 
-			if bResp.Code == "00000" {
-				// SUCCESS: Key is viable!
-				m.Logger.Info("Bitget API: Connection Verified (Success)")
+			if info.Code == "00000" {
+				// SUCCESS: Update the UserID in the Manager
+				m.mu.Lock()
+				m.UserID = info.Data.UserId
+				m.ShowAPI = false
+				m.mu.Unlock()
+
+				// Save to file
+				_ = SaveSession(SavedConfig{
+					APIKey:     key,
+					SecretKey:  sec,
+					Passphrase: pas,
+				})
+
+				m.Logger.Info(fmt.Sprintf("Bitget API: Connected (User ID: %s)", info.Data.UserId))
+
 				m.mu.Lock()
 				m.ShowAPI = false
 				m.mu.Unlock()
+
+				_ = g.DeleteView("api_pop")
+				_ = g.DeleteView("api_key")
+				_ = g.DeleteView("api_secret")
+				_ = g.DeleteView("api_pass")
+
+				g.Cursor = false
 				_, _ = g.SetCurrentView("order_panel")
 			} else {
-				// FAILURE: Key is invalid or IP blocked
-				m.handleAPIError(bResp.Code, bResp.Msg)
+				m.handleAPIError(info.Code, "")
 			}
 			return nil
 		})
@@ -620,4 +641,26 @@ func (m *Manager) handleAPIError(code, msg string) {
 	default:
 		m.Logger.Error(fmt.Sprintf("Bitget Error [%s]: %s", code, msg))
 	}
+}
+
+func (m *Manager) RefreshUserInfo(g *gocui.Gui) {
+	if config.APIKey == "" {
+		return
+	}
+
+	go func() {
+		client := new(v2.SpotAccountClient).Init()
+		resp, _ := client.Info()
+		var info bitgetAccountInfo
+		_ = json.Unmarshal([]byte(resp), &info)
+
+		if info.Code == "00000" {
+			g.Update(func(g *gocui.Gui) error {
+				m.mu.Lock()
+				m.UserID = info.Data.UserId
+				m.mu.Unlock()
+				return nil
+			})
+		}
+	}()
 }
