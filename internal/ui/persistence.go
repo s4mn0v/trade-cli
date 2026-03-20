@@ -3,7 +3,6 @@ package ui
 import (
 	"encoding/json"
 	"os"
-	"path/filepath"
 )
 
 type SavedConfig struct {
@@ -14,8 +13,9 @@ type SavedConfig struct {
 
 // GetConfigPath returns the path to ~/.bitget-trade-cli.json
 func GetConfigPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".bitget-trade-cli.json")
+	// home, _ := os.UserHomeDir()
+	// return filepath.Join(home, ".bitget-trade-cli.json")
+	return ".bitget-trade-cli"
 }
 
 // SaveSession writes the credentials to a hidden file
