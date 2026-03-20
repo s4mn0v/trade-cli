@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/s4mn0v/bitget/config"
 )
 
 const (
@@ -24,6 +25,7 @@ type Manager struct {
 	ShowCoin        bool
 	ShowSync        bool
 	ShowAPI         bool
+	UserID          string
 	CurrentCoin     string
 	FuturesLeverage int
 	PositionPercent int
@@ -57,6 +59,7 @@ func NewManager() *Manager {
 		ShowCoin:        false,
 		ShowSync:        false,
 		ShowAPI:         false,
+		UserID:          "",
 		APIPopup:        &APIConfigPopup{FocusedField: 0},
 		FuturesLeverage: 5,
 		PositionPercent: 100,
@@ -76,16 +79,26 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	defer m.mu.RUnlock()
 
 	maxX, maxY := g.Size()
-	orderH := 12
+	orderH := 10
 
 	histW := int(float64(maxX) * 0.70)
 	logX0 := histW + 1
 
-	// Helper to get the base asset (e.g., "BTC" from "BTCUSDT")
+	// 1. Calculate API Status (READY / OFFLINE)
+	apiDisplay := "OFFLINE"
+	if m.UserID != "" {
+		apiDisplay = "READY: " + m.UserID
+	} else if config.APIKey != "" {
+		apiDisplay = "Connecting..."
+	}
+	// Combining into a styled string
+	// apiDisplay := fmt.Sprintf("API: %s", m.UserID)
+
+	// Helper to get the base asset
 	baseAsset := strings.TrimSuffix(m.CurrentCoin, "USDT")
 	assetAmount := m.SpotAssets[baseAsset]
 
-	// 1. Order Panel
+	// 2. Order Panel (Clean title without Status)
 	if v, err := g.SetView("order_panel", 0, 0, maxX-1, orderH, 0); err == nil {
 		var title string
 		if m.Mode == ModeSpot {
@@ -97,24 +110,29 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		v.Clear()
 
 		if m.Mode == ModeSpot {
-			// Spot View: Show Buy/Sell instructions
-			_, _ = fmt.Fprintf(v, "\n  \033[32m(b) BUY %s\033[0m (Spend USDT) | \033[31m(s) SELL %s\033[0m (Spend %s)", baseAsset, baseAsset, baseAsset)
-			_, _ = fmt.Fprint(v, "\n  (Ctrl+O) Order Mode | (p) Change Coin | (Q) Set Size")
-			_, _ = fmt.Fprint(v, "\n\n  \033[90mSpot mode enabled. View history below.\033[0m")
+			fmt.Fprintf(v, "\n  \033[32m(b) BUY %s\033[0m (Spend USDT) | \033[31m(s) SELL %s\033[0m (Spend %s)", baseAsset, baseAsset, baseAsset)
+			fmt.Fprint(v, "\n  (Ctrl+O) Order Mode | (p) Change Coin | (Q) Set Size")
+			fmt.Fprint(v, "\n\n  \033[90mSpot mode enabled. View history below.\033[0m")
 		} else {
-			// Futures View: Show Long/Short instructions and the Positions Table
-			_, _ = fmt.Fprint(v, "\n  \033[32m(l) LONG\033[0m | \033[31m(s) SHORT\033[0m | \033[33m(c) CLOSE SELECTED\033[0m")
-			_, _ = fmt.Fprint(v, "\n  (L) Leverage | (Q) Quantity | (p) Coin | (Tab) Switch Focus")
-
-			// Draw the horizontal line and positions table
+			fmt.Fprint(v, "\n  \033[32m(l) LONG\033[0m | \033[31m(s) SHORT\033[0m | \033[33m(c) CLOSE SELECTED\033[0m")
+			fmt.Fprint(v, "\n  (L) Leverage | (Q) Quantity | (p) Coin | (Tab) Switch Focus")
 			m.Positions.Render(v, maxX)
 		}
 	}
 
-	// 2. History Panel
+	// 3. History Panel (Adding the Status here)
 	if v, err := g.SetView("history", 0, orderH+1, histW, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
-		v.Subtitle = " History "
+		// We use a combination of " History " and the API status
+		v.Subtitle = fmt.Sprintf(" History [%s] ", apiDisplay)
 		m.History.Render(v, histW, m.Mode)
+	}
+
+	// 4. Logs Panel (Stays the same)
+	if v, err := g.SetView("logs", logX0, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
+		v.Title = " Logs "
+		v.Autoscroll = true
+		v.Wrap = true
+		m.Logger.Render(v)
 	}
 
 	// 3. Logs Panel
