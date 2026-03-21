@@ -543,7 +543,7 @@ func (m *Manager) NextAPIField(g *gocui.Gui, v *gocui.View) error {
 type bitgetAccountInfo struct {
 	Code string `json:"code"`
 	Data struct {
-		UserId string `json:"userId"`
+		UserID string `json:"userId"`
 	} `json:"data"`
 }
 
@@ -593,7 +593,7 @@ func (m *Manager) SaveAPIConfig(g *gocui.Gui, v *gocui.View) error {
 			if info.Code == "00000" {
 				// SUCCESS: Update the UserID in the Manager
 				m.mu.Lock()
-				m.UserID = info.Data.UserId
+				m.UserID = info.Data.UserID
 				m.ShowAPI = false
 				m.mu.Unlock()
 
@@ -604,7 +604,7 @@ func (m *Manager) SaveAPIConfig(g *gocui.Gui, v *gocui.View) error {
 					Passphrase: pas,
 				})
 
-				m.Logger.Info(fmt.Sprintf("Bitget API: Connected (User ID: %s)", info.Data.UserId))
+				m.Logger.Info(fmt.Sprintf("Bitget API: Connected (User ID: %s)", info.Data.UserID))
 
 				m.mu.Lock()
 				m.ShowAPI = false
@@ -657,7 +657,7 @@ func (m *Manager) RefreshUserInfo(g *gocui.Gui) {
 		if info.Code == "00000" {
 			g.Update(func(g *gocui.Gui) error {
 				m.mu.Lock()
-				m.UserID = info.Data.UserId
+				m.UserID = info.Data.UserID
 				m.mu.Unlock()
 				return nil
 			})

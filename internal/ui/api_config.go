@@ -36,12 +36,12 @@ func (a *APIConfigPopup) Render(g *gocui.Gui, maxX, maxY int) error {
 
 	// 2. Define the three input fields
 	fieldNames := []string{"api_key", "api_secret", "api_pass"}
-	labels := []string{" API KEY ", " SECRET  ", " PASS    "}
+	labels := []string{" API KEY ", " SECRET ", " PASS "}
 
 	for i, name := range fieldNames {
 		// Calculate position for each box
-		fy0 := y0 + 2 + (i * 2)
-		if v, err := g.SetView(name, x0+12, fy0, x1-2, fy0+2, 0); err != nil {
+		fy0 := y0 + 1 + (i * 3)
+		if v, err := g.SetView(name, x0+2, fy0, x1-2, fy0+2, 0); err != nil {
 			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
 			}

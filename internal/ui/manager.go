@@ -91,8 +91,6 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 	} else if config.APIKey != "" {
 		apiDisplay = "Connecting..."
 	}
-	// Combining into a styled string
-	// apiDisplay := fmt.Sprintf("API: %s", m.UserID)
 
 	// Helper to get the base asset
 	baseAsset := strings.TrimSuffix(m.CurrentCoin, "USDT")
@@ -110,12 +108,12 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		v.Clear()
 
 		if m.Mode == ModeSpot {
-			fmt.Fprintf(v, "\n  \033[32m(b) BUY %s\033[0m (Spend USDT) | \033[31m(s) SELL %s\033[0m (Spend %s)", baseAsset, baseAsset, baseAsset)
-			fmt.Fprint(v, "\n  (Ctrl+O) Order Mode | (p) Change Coin | (Q) Set Size")
-			fmt.Fprint(v, "\n\n  \033[90mSpot mode enabled. View history below.\033[0m")
+			_, _ = fmt.Fprintf(v, "\n  \033[32m(b) BUY %s\033[0m (Spend USDT) | \033[31m(s) SELL %s\033[0m (Spend %s)", baseAsset, baseAsset, baseAsset)
+			_, _ = fmt.Fprint(v, "\n  (Ctrl+O) Order Mode | (p) Change Coin | (Q) Set Size")
+			_, _ = fmt.Fprint(v, "\n\n  \033[90mSpot mode enabled. View history below.\033[0m")
 		} else {
-			fmt.Fprint(v, "\n  \033[32m(l) LONG\033[0m | \033[31m(s) SHORT\033[0m | \033[33m(c) CLOSE SELECTED\033[0m")
-			fmt.Fprint(v, "\n  (L) Leverage | (Q) Quantity | (p) Coin | (Tab) Switch Focus")
+			_, _ = fmt.Fprint(v, "\n  \033[32m(l) LONG\033[0m | \033[31m(s) SHORT\033[0m | \033[33m(c) CLOSE SELECTED\033[0m")
+			_, _ = fmt.Fprint(v, "\n  (L) Leverage | (Q) Quantity | (p) Coin | (Tab) Switch Focus")
 			m.Positions.Render(v, maxX)
 		}
 	}
