@@ -1,3 +1,4 @@
+// Package ui Keybindings
 package ui
 
 import "github.com/awesome-gocui/gocui"
@@ -71,6 +72,13 @@ func (m *Manager) InitKeybindings(g *gocui.Gui) error {
 		// Esc to cancel
 		_ = g.SetKeybinding(field, gocui.KeyEsc, gocui.ModNone, m.ToggleAPIPopup)
 	}
+
+	// Global Quit (Ctrl+C)
+	_ = g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, m.Quit)
+
+	// Popup specific keys
+	_ = g.SetKeybinding("exit_pop", 'y', gocui.ModNone, m.ConfirmExit)
+	_ = g.SetKeybinding("exit_pop", 'n', gocui.ModNone, m.CancelExit)
 
 	return nil
 }

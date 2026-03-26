@@ -11,7 +11,33 @@ import (
 	v2 "github.com/s4mn0v/bitget/pkg/client/v2"
 )
 
-func (m *Manager) Quit(g *gocui.Gui, v *gocui.View) error { return gocui.ErrQuit }
+// --- 1. APPLICATION & GLOBAL ---
+
+// Quit no longer exits immediately. It triggers the popup state.
+func (m *Manager) Quit(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.ShowExit = true
+	m.mu.Unlock()
+
+	return nil
+}
+
+// ConfirmExit is the only function that returns gocui.ErrQuit
+func (m *Manager) ConfirmExit(g *gocui.Gui, v *gocui.View) error {
+	return gocui.ErrQuit
+}
+
+// CancelExit hides the popup and returns focus to the main panel
+func (m *Manager) CancelExit(g *gocui.Gui, v *gocui.View) error {
+	m.mu.Lock()
+	m.ShowExit = false
+	m.mu.Unlock()
+
+	// Clean up the view and return focus
+	_ = g.DeleteView("exit_pop")
+	_, err := g.SetCurrentView("order_panel")
+	return err
+}
 
 func (m *Manager) ToggleFocus(g *gocui.Gui, v *gocui.View) error {
 	// NEW: If a popup is open, ignore the Tab key

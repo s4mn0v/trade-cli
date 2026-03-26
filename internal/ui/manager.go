@@ -1,4 +1,3 @@
-// Package ui Manager
 package ui
 
 import (
@@ -25,6 +24,7 @@ type Manager struct {
 	ShowCoin        bool
 	ShowSync        bool
 	ShowAPI         bool
+	ShowExit        bool
 	UserID          string
 	CurrentCoin     string
 	FuturesLeverage int
@@ -59,6 +59,7 @@ func NewManager() *Manager {
 		ShowCoin:        false,
 		ShowSync:        false,
 		ShowAPI:         false,
+		ShowExit:        false,
 		UserID:          "",
 		APIPopup:        &APIConfigPopup{FocusedField: 0},
 		FuturesLeverage: 5,
@@ -80,11 +81,10 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 
 	maxX, maxY := g.Size()
 	orderH := 10
-
 	histW := int(float64(maxX) * 0.70)
 	logX0 := histW + 1
 
-	// 1. Calculate API Status (READY / OFFLINE)
+	// API Status string
 	apiDisplay := "OFFLINE"
 	if m.UserID != "" {
 		apiDisplay = "READY: " + m.UserID
@@ -92,12 +92,13 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		apiDisplay = "Connecting..."
 	}
 
-	// Helper to get the base asset
 	baseAsset := strings.TrimSuffix(m.CurrentCoin, "USDT")
 	assetAmount := m.SpotAssets[baseAsset]
 
-	// 2. Order Panel (Clean title without Status)
-	if v, err := g.SetView("order_panel", 0, 0, maxX-1, orderH, 0); err == nil {
+	// --- 1. BASE PANELS ---
+
+	// Order Panel
+	if v, err := g.SetView("order_panel", 0, 0, maxX-1, orderH, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
 		var title string
 		if m.Mode == ModeSpot {
 			title = fmt.Sprintf(" %s SPOT | Size: %d%% | Avbl: %.2f USDT | %.4f %s ", m.CurrentCoin, m.PositionPercent, m.SpotBalance, assetAmount, baseAsset)
@@ -116,16 +117,20 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 			_, _ = fmt.Fprint(v, "\n  (L) Leverage | (Q) Quantity | (p) Coin | (Tab) Switch Focus")
 			m.Positions.Render(v, maxX)
 		}
+
+		// Initial focus
+		if errors.Is(err, gocui.ErrUnknownView) && !m.AnyPopupOpen() {
+			_, _ = g.SetCurrentView("order_panel")
+		}
 	}
 
-	// 3. History Panel (Adding the Status here)
+	// History Panel
 	if v, err := g.SetView("history", 0, orderH+1, histW, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
-		// We use a combination of " History " and the API status
 		v.Subtitle = fmt.Sprintf(" History [%s] ", apiDisplay)
 		m.History.Render(v, histW, m.Mode)
 	}
 
-	// 4. Logs Panel (Stays the same)
+	// Logs Panel
 	if v, err := g.SetView("logs", logX0, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
 		v.Title = " Logs "
 		v.Autoscroll = true
@@ -133,15 +138,9 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		m.Logger.Render(v)
 	}
 
-	// 3. Logs Panel
-	if v, err := g.SetView("logs", logX0, orderH+1, maxX-1, maxY-1, 0); err == nil || errors.Is(err, gocui.ErrUnknownView) {
-		v.Title = " Logs "
-		v.Autoscroll = true
-		v.Wrap = true
-		m.Logger.Render(v)
-	}
+	// --- 2. POPUP LAYERS (Order matters for Z-index) ---
 
-	// --- QUANTITY POPUP LAYER ---
+	// Quantity Popup
 	if m.ShowQuantity {
 		balance := m.SpotBalance
 		if m.Mode == ModeFutures {
@@ -154,18 +153,16 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		_ = g.DeleteView("quantity_pop")
 	}
 
-	// --- LEVERAGEPOPUP LAYER ---
+	// Leverage Popup
 	if m.ShowLeverage {
 		if err := m.LeveragePopup.Render(g, maxX, maxY); err != nil {
 			return err
 		}
 	} else {
-		if err := g.DeleteView("leverage_pop"); err != nil && !errors.Is(err, gocui.ErrUnknownView) {
-			return err
-		}
+		_ = g.DeleteView("leverage_pop")
 	}
 
-	// --- COIN POPUP LAYER ---
+	// Coin Popup
 	if m.ShowCoin {
 		input := ""
 		if v, err := g.View("coin_pop"); err == nil {
@@ -177,12 +174,9 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		g.Cursor = true
 	} else {
 		_ = g.DeleteView("coin_pop")
-		if !m.ShowQuantity && !m.ShowLeverage {
-			g.Cursor = false
-		}
 	}
 
-	// --- SYNC POPUP LAYER ---
+	// Sync Popup
 	if m.ShowSync {
 		if err := m.SyncPopup.Render(g, maxX, maxY); err != nil {
 			return err
@@ -191,17 +185,42 @@ func (m *Manager) Layout(g *gocui.Gui) error {
 		_ = g.DeleteView("sync_pop")
 	}
 
-	// --- API CONFIG POPUP ---
+	// API Popup
 	if m.ShowAPI {
 		if err := m.APIPopup.Render(g, maxX, maxY); err != nil {
 			return err
 		}
 	} else {
-		// Clean up all 4 views when closed
 		_ = g.DeleteView("api_pop")
 		_ = g.DeleteView("api_key")
 		_ = g.DeleteView("api_secret")
 		_ = g.DeleteView("api_pass")
+	}
+
+	// Exit Confirmation Popup
+	if m.ShowExit {
+		w, h := 40, 3
+		x0, y0 := maxX/2-w/2, maxY/2-h/2
+		x1, y1 := x0+w, y0+h
+
+		if v, err := g.SetView("exit_pop", x0, y0, x1, y1, 0); err != nil {
+			if !errors.Is(err, gocui.ErrUnknownView) {
+				return err
+			}
+			v.Title = " Quit? "
+			v.Frame = true
+			_, _ = fmt.Fprintln(v, "  Are you sure you want to exit?")
+			_, _ = fmt.Fprint(v, "      [y] Yes  |  [n] No")
+
+			_, _ = g.SetCurrentView("exit_pop")
+		}
+	} else {
+		_ = g.DeleteView("exit_pop")
+	}
+
+	// Ensure cursor state is correct
+	if !m.ShowCoin && !m.ShowAPI {
+		g.Cursor = false
 	}
 
 	m.applyDynamicStyles(g)
@@ -214,15 +233,14 @@ func (m *Manager) applyDynamicStyles(g *gocui.Gui) {
 		curr = v.Name()
 	}
 
-	// Default Mode Colors
-	modeColor := gocui.ColorGreen // SPOT
+	modeColor := gocui.ColorGreen
 	if m.Mode == ModeFutures {
-		modeColor = gocui.ColorRed // FUTURES
+		modeColor = gocui.ColorRed
 	}
 
 	selectedRunes := []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
-
 	views := []string{"order_panel", "history", "logs"}
+
 	for _, name := range views {
 		if v, err := g.View(name); err == nil {
 			if (name == "order_panel" && m.OrderMode) || curr == name {
@@ -236,13 +254,20 @@ func (m *Manager) applyDynamicStyles(g *gocui.Gui) {
 	}
 }
 
-func SetTerminalSize(rows, cols int) {
-	fmt.Printf("\033[8;%d;%dt", rows, cols)
-}
-
 // AnyPopupOpen returns true if any modal window is currently being displayed
 func (m *Manager) AnyPopupOpen() bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.ShowLeverage || m.ShowQuantity || m.ShowCoin || m.ShowSync
+	return m.ShowLeverage || m.ShowQuantity || m.ShowCoin || m.ShowSync || m.ShowAPI || m.ShowExit
+}
+
+func (m *Manager) SafeFocus(g *gocui.Gui, viewName string) {
+	g.Update(func(g *gocui.Gui) error {
+		_, err := g.SetCurrentView(viewName)
+		return err
+	})
+}
+
+func SetTerminalSize(rows, cols int) {
+	fmt.Printf("\033[8;%d;%dt", rows, cols)
 }
